@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Rydar",
+    "slug": "rydar",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "rydar",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#07080B",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.mithilbatra.rydar"
+    },
+    "android": {
+      "package": "com.mithilbatra.rydar",
+      "adaptiveIcon": {
+        "backgroundColor": "#07080B",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#07080B",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 120
+        }
+      ],
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Rydar uses your location to record your route, distance and speed while you ride."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
