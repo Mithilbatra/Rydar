@@ -1,8 +1,29 @@
 # Rydar: a ride tracker for bicycles and motorbikes
 
-A Strava-style ride tracker for one rider, built with Expo (React Native) and TypeScript. It records live GPS rides for a **bicycle** or a **motorbike**: it draws the route on a dark map and shows speed on a gauge, with distance, time, average and max speed, and climb. Rides go to history, profile stats and personal records. Rides are saved on the phone first and back up to your own free Supabase project when you sign in.
+<p align="center"><img src="docs/screenshots/banner.png" alt="Rydar home screen, live ride with the lean gauge, and ride summary" /></p>
+
+A Strava-style ride tracker for one rider, built with Expo (React Native) and TypeScript. It records live GPS rides for a **bicycle** or a **motorbike**: it draws the route on a dark map and shows a race-dash HUD with speed, lean angle, distance, time, average and max speed, and climb. Rides go to history, profile stats and personal records. Rides are saved on the phone first and back up to your own free Supabase project when you sign in.
 
 Everything in the first version is free. See [What costs money](#what-is-free-and-what-costs-money).
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/home.png" width="200" alt="Home screen, motorbike" /><br /><sub>Home: motorbike</sub></td>
+    <td align="center"><img src="docs/screenshots/home-bicycle.png" width="200" alt="Home screen, bicycle" /><br /><sub>Home: bicycle</sub></td>
+    <td align="center"><img src="docs/screenshots/live.png" width="200" alt="Live ride with lean gauge" /><br /><sub>Live ride and lean gauge</sub></td>
+    <td align="center"><img src="docs/screenshots/summary.png" width="200" alt="Ride summary" /><br /><sub>Chequered flag</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/summary-details.png" width="200" alt="Ride stats, records and speed chart" /><br /><sub>Stats, records, charts</sub></td>
+    <td align="center"><img src="docs/screenshots/history.png" width="200" alt="Race log history" /><br /><sub>Race log</sub></td>
+    <td align="center"><img src="docs/screenshots/profile.png" width="200" alt="Rider profile" /><br /><sub>Rider profile</sub></td>
+    <td align="center"><img src="docs/screenshots/settings.png" width="200" alt="Settings" /><br /><sub>Pit lane settings</sub></td>
+  </tr>
+</table>
+
+Taken on the Android emulator with a simulated ride, so the map is Google Maps. On an iPhone it is Apple Maps.
 
 ## Features
 
@@ -53,6 +74,7 @@ utils/                   geo (haversine, climb), format (units, time), polyline 
 types/                   shared TypeScript types
 supabase/schema.sql      tables, row level security, sign-up trigger
 __tests__/               Jest tests for the tracker and utils
+docs/screenshots/        README images
 ```
 
 There is no separate `screens/` folder. With Expo Router, each file in `app/` is the screen, so a `screens/` folder would only hold one-line re-exports.
