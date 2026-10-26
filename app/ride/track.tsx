@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Glass } from '@/components/Glass';
 import { GradientButton } from '@/components/GradientButton';
 import { HoldButton } from '@/components/HoldButton';
+import { LeanGauge } from '@/components/LeanGauge';
 import { RaceTag } from '@/components/RaceTag';
 import { RevBar } from '@/components/RevBar';
 import { RouteMap } from '@/components/RouteMap';
@@ -100,7 +101,7 @@ export default function Track() {
   const top = fmtSpeed(topKmh, units);
   const newRecord = bestTopSpeedKmh != null && topKmh > bestTopSpeedKmh;
   const elevation = fmtElevation(state?.elevationGainM ?? 0, units);
-  const speedSize = Math.min(128, height * 0.15);
+  const speedSize = Math.min(112, height * 0.135);
 
   const stop = async () => {
     setStopping(true);
@@ -150,6 +151,8 @@ export default function Track() {
           <View style={styles.speedRow}>
             <Text
               style={[styles.speed, { fontSize: speedSize, lineHeight: speedSize * 1.02 }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
               accessibilityLabel={`Speed ${speed.value} ${speed.unit}`}>
               {speed.value}
             </Text>
@@ -157,6 +160,7 @@ export default function Track() {
               <Text style={styles.speedUnit}>{speed.unit}</Text>
               <RaceTag label={config.label} color={config.accent} small />
             </View>
+            <LeanGauge leanDeg={state?.leanDeg ?? 0} maxLeanDeg={state?.maxLeanDeg ?? 0} accent={config.accent} />
           </View>
         </View>
 
@@ -279,8 +283,8 @@ const styles = StyleSheet.create({
   },
   stripe: { position: 'absolute', top: 0, left: space.xl, right: space.xl, height: 3, borderRadius: 2 },
   dimmed: { opacity: 0.45 },
-  speedRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.md, marginTop: space.xs },
-  speed: { fontFamily: fonts.black, color: colors.text, fontVariant: ['tabular-nums'], includeFontPadding: false },
+  speedRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, marginTop: space.xs },
+  speed: { flex: 1, fontFamily: fonts.black, color: colors.text, fontVariant: ['tabular-nums'], includeFontPadding: false },
   speedSide: { paddingBottom: space.lg, gap: space.sm },
   speedUnit: { fontFamily: fonts.displayItalic, fontSize: 22, color: colors.textDim, letterSpacing: 1.5, textTransform: 'uppercase' },
   tiles: { flexDirection: 'row', gap: space.md },

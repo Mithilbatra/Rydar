@@ -5,7 +5,7 @@ import type { ActivityType, RideListItem } from '@/types';
 
 type StatRide = Pick<
   RideListItem,
-  'id' | 'activityType' | 'startedAt' | 'distanceKm' | 'durationSeconds' | 'elevationGainM' | 'maxSpeedKmh'
+  'id' | 'activityType' | 'startedAt' | 'distanceKm' | 'durationSeconds' | 'elevationGainM' | 'maxSpeedKmh' | 'maxLeanDeg'
 >;
 
 const addDays = (ts: number, days: number) => {
@@ -57,18 +57,20 @@ export interface Bests<T> {
   fastest: T | null;
   biggestClimb: T | null;
   longestTime: T | null;
+  maxLean: T | null;
 }
 
 /** Takes one activity on purpose: a motorbike top speed must never become a bicycle record. */
 export function bests<T extends StatRide>(rides: readonly T[], activity: ActivityType): Bests<T> {
   const own = rides.filter((r) => r.activityType === activity);
-  const top = (key: 'distanceKm' | 'maxSpeedKmh' | 'elevationGainM' | 'durationSeconds') =>
+  const top = (key: 'distanceKm' | 'maxSpeedKmh' | 'elevationGainM' | 'durationSeconds' | 'maxLeanDeg') =>
     own.reduce<T | null>((best, r) => (r[key] > (best?.[key] ?? 0) ? r : best), null);
   return {
     longest: top('distanceKm'),
     fastest: top('maxSpeedKmh'),
     biggestClimb: top('elevationGainM'),
     longestTime: top('durationSeconds'),
+    maxLean: top('maxLeanDeg'),
   };
 }
 

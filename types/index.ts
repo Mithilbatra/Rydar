@@ -34,6 +34,8 @@ export interface RideStats {
   avgSpeedKmh: number;
   maxSpeedKmh: number;
   elevationGainM: number;
+  /** Estimated from speed and turn rate; 0 when never fast enough to tell. */
+  maxLeanDeg: number;
 }
 
 export interface Ride extends RideStats {

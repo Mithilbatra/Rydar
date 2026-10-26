@@ -166,6 +166,13 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
                 color={badges.includes('Top speed') ? colors.record : colors.text}
               />
             </Tile>
+            <Tile accent={badges.includes('Max lean') ? colors.record : colors.warning} style={styles.cell}>
+              <Stat
+                label="Max lean (est.)"
+                value={`${Math.round(ride.maxLeanDeg)}°`}
+                color={badges.includes('Max lean') ? colors.record : colors.text}
+              />
+            </Tile>
           </View>
 
           {speeds.length > 3 && (
@@ -269,6 +276,7 @@ function recordBadges(ride: Ride, all: RideListItem[]): string[] {
     b.fastest?.id === ride.id && 'Top speed',
     b.biggestClimb?.id === ride.id && 'Biggest climb',
     b.longestTime?.id === ride.id && 'Longest time',
+    b.maxLean?.id === ride.id && 'Max lean',
   ].filter((x): x is string => typeof x === 'string');
 }
 

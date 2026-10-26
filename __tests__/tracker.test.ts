@@ -97,6 +97,52 @@ describe('tracker', () => {
     expect(activeSeconds(s, T0 + 65_000)).toBe(5);
   });
 
+  describe('lean angle', () => {
+    const LAT0 = 12.97;
+    const LON0 = 77.59;
+    const M_PER_DEG = 111_195;
+    // One fix per second on a circle; clockwise (right turn) when dir = 1.
+    const circle = (speedMs: number, radius: number, dir: 1 | -1, seconds: number) =>
+      Array.from({ length: seconds }, (_, i) => {
+        const theta = dir * (speedMs / radius) * i;
+        return fix(0, {
+          latitude: LAT0 + (radius * Math.cos(theta)) / M_PER_DEG,
+          longitude: LON0 + (radius * Math.sin(theta)) / (M_PER_DEG * Math.cos((LAT0 * Math.PI) / 180)),
+          speed: speedMs,
+          timestamp: T0 + i * 1000,
+        });
+      });
+
+    it('a steady right turn reads about 39° right, a left turn the same to the left', () => {
+      const right = ride('motorbike', circle(20, 50, 1, 15)).s;
+      expect(right.leanDeg).toBeGreaterThan(36);
+      expect(right.leanDeg).toBeLessThan(41);
+      expect(right.maxLeanDeg).toBeLessThan(41);
+      expect(summarize(right, T0 + 15_000).maxLeanDeg).toBe(right.maxLeanDeg);
+      const left = ride('motorbike', circle(20, 50, -1, 15)).s;
+      expect(left.leanDeg).toBeLessThan(-36);
+    });
+
+    it('riding straight reads no lean', () => {
+      const { s } = ride('motorbike', Array.from({ length: 10 }, (_, i) => fix(i * 2, { speed: 20 })));
+      expect(Math.abs(s.leanDeg)).toBeLessThan(0.5);
+      expect(s.maxLeanDeg).toBeLessThan(0.5);
+    });
+
+    it('below walking-pace speeds the estimate stays at zero', () => {
+      const { s } = ride('bicycle', circle(3, 8, 1, 15));
+      expect(s.maxLeanDeg).toBe(0);
+    });
+
+    it('pausing clears the live lean but keeps the max', () => {
+      let { s } = ride('motorbike', circle(20, 50, 1, 10));
+      const max = s.maxLeanDeg;
+      s = pauseTracker(s, T0 + 10_000);
+      expect(s.leanDeg).toBe(0);
+      expect(s.maxLeanDeg).toBe(max);
+    });
+  });
+
   it('replaying saved points rebuilds the same stats', () => {
     let s: TrackerState = startTracker('motorbike', T0);
     const kept: Waypoint[] = [];
@@ -113,6 +159,7 @@ describe('tracker', () => {
     const replayed = replayTracker('motorbike', T0, kept);
     expect(replayed.distanceM).toBeCloseTo(s.distanceM, 6);
     expect(replayed.elevationGainM).toBe(s.elevationGainM);
+    expect(replayed.maxLeanDeg).toBeCloseTo(s.maxLeanDeg, 6);
     expect(replayed.seq).toBe(s.seq);
     expect(replayed.segment).toBe(1);
     expect(replayed.pausedMs).toBe(26_000);

@@ -1,5 +1,5 @@
 import { avgSpeedKmh, fmtDistance, fmtSpeed, formatDuration, formatDurationShort } from '@/utils/format';
-import { haversineMeters, stepElevation } from '@/utils/geo';
+import { bearingDeg, haversineMeters, leanAngleDeg, stepElevation, turnDeg } from '@/utils/geo';
 import { decodePolyline, encodePolyline, routeToSvgPath, samplePoints } from '@/utils/polyline';
 import { bests, dailyDistance, startOfWeek, weekStreak, weeklyDistance } from '@/utils/stats';
 
@@ -43,6 +43,22 @@ describe('geo', () => {
     expect(haversineMeters({ latitude: 0, longitude: 0 }, { latitude: 0, longitude: 1 })).toBeCloseTo(111_195, -1);
   });
 
+  it('bearings and turns', () => {
+    expect(bearingDeg({ latitude: 0, longitude: 0 }, { latitude: 1, longitude: 0 })).toBeCloseTo(0, 6);
+    expect(bearingDeg({ latitude: 0, longitude: 0 }, { latitude: 0, longitude: 1 })).toBeCloseTo(90, 6);
+    expect(bearingDeg({ latitude: 0, longitude: 0 }, { latitude: -1, longitude: 0 })).toBeCloseTo(180, 6);
+    expect(turnDeg(350, 10)).toBe(20);
+    expect(turnDeg(10, 350)).toBe(-20);
+    expect(turnDeg(90, 90)).toBe(0);
+  });
+
+  it('lean angle follows tan(lean) = v·ω/g', () => {
+    // 20 m/s around a 50 m radius: ω = 0.4 rad/s, tan(lean) = 0.8155
+    expect(leanAngleDeg(20, (0.4 * 180) / Math.PI)).toBeCloseTo(39.2, 1);
+    expect(leanAngleDeg(20, (-0.4 * 180) / Math.PI)).toBeCloseTo(-39.2, 1);
+    expect(leanAngleDeg(0, 30)).toBe(0);
+  });
+
   it('elevation noise below the threshold gives no gain, a real climb does', () => {
     let s = { ref: null as number | null, gain: 0 };
     for (const alt of [100, 101.5, 99, 102, 100.5, 101]) s = stepElevation(s.ref, s.gain, alt);
@@ -82,6 +98,7 @@ describe('stats', () => {
     durationSeconds: 1800,
     elevationGainM: 50,
     maxSpeedKmh: 40,
+    maxLeanDeg: 20,
     ...extra,
   });
 

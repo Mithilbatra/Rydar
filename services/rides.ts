@@ -18,6 +18,7 @@ interface RideRow {
   avg_speed_kmh: number;
   max_speed_kmh: number;
   elevation_gain_m: number;
+  max_lean_deg: number;
   route_polyline?: string;
   preview: string;
   is_public: number;
@@ -35,13 +36,14 @@ interface RemoteRide {
   avg_speed_kmh: number;
   max_speed_kmh: number;
   elevation_gain_m: number;
+  max_lean_deg: number;
   route_polyline: string;
   is_public: boolean;
   created_at: string;
 }
 
 const LIST_COLUMNS = `id, activity_type, status, started_at, ended_at, distance_km, duration_seconds,
-  avg_speed_kmh, max_speed_kmh, elevation_gain_m, preview, is_public, synced_at, created_at`;
+  avg_speed_kmh, max_speed_kmh, elevation_gain_m, max_lean_deg, preview, is_public, synced_at, created_at`;
 
 function fromRow(r: RideRow): Ride {
   return {
@@ -55,6 +57,7 @@ function fromRow(r: RideRow): Ride {
     avgSpeedKmh: r.avg_speed_kmh,
     maxSpeedKmh: r.max_speed_kmh,
     elevationGainM: r.elevation_gain_m,
+    maxLeanDeg: r.max_lean_deg,
     routePolyline: r.route_polyline ?? '',
     preview: r.preview,
     isPublic: r.is_public === 1,
@@ -121,7 +124,7 @@ export async function finishRide(id: string, stats: RideStats, endedAt: number) 
   const points = await getWaypoints(id);
   await db.runAsync(
     `UPDATE rides SET status = 'finished', ended_at = ?, distance_km = ?, duration_seconds = ?, avg_speed_kmh = ?,
-       max_speed_kmh = ?, elevation_gain_m = ?, route_polyline = ?, preview = ? WHERE id = ?`,
+       max_speed_kmh = ?, elevation_gain_m = ?, max_lean_deg = ?, route_polyline = ?, preview = ? WHERE id = ?`,
     [
       endedAt,
       stats.distanceKm,
@@ -129,6 +132,7 @@ export async function finishRide(id: string, stats: RideStats, endedAt: number) 
       stats.avgSpeedKmh,
       stats.maxSpeedKmh,
       stats.elevationGainM,
+      stats.maxLeanDeg,
       encodePolyline(points),
       encodePolyline(samplePoints(points, PREVIEW_POINTS)),
       id,
@@ -205,6 +209,7 @@ async function uploadPending(): Promise<number> {
       avg_speed_kmh: row.avg_speed_kmh,
       max_speed_kmh: row.max_speed_kmh,
       elevation_gain_m: row.elevation_gain_m,
+      max_lean_deg: row.max_lean_deg,
       route_polyline: row.route_polyline ?? '',
       is_public: row.is_public === 1,
     });
@@ -248,7 +253,7 @@ export async function pullRemoteRides() {
   const { data, error } = await supabase
     .from('rides')
     .select(
-      'id, activity_type, started_at, ended_at, distance_km, duration_seconds, avg_speed_kmh, max_speed_kmh, elevation_gain_m, route_polyline, is_public, created_at',
+      'id, activity_type, started_at, ended_at, distance_km, duration_seconds, avg_speed_kmh, max_speed_kmh, elevation_gain_m, max_lean_deg, route_polyline, is_public, created_at',
     )
     .eq('user_id', userId);
   if (error) throw error;
@@ -258,8 +263,8 @@ export async function pullRemoteRides() {
     for (const r of data as RemoteRide[]) {
       await db.runAsync(
         `INSERT OR IGNORE INTO rides (id, activity_type, status, started_at, ended_at, distance_km, duration_seconds,
-           avg_speed_kmh, max_speed_kmh, elevation_gain_m, route_polyline, preview, is_public, synced_at, created_at)
-         VALUES (?, ?, 'finished', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           avg_speed_kmh, max_speed_kmh, elevation_gain_m, max_lean_deg, route_polyline, preview, is_public, synced_at, created_at)
+         VALUES (?, ?, 'finished', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           r.id,
           r.activity_type,
@@ -270,6 +275,7 @@ export async function pullRemoteRides() {
           r.avg_speed_kmh,
           r.max_speed_kmh,
           r.elevation_gain_m,
+          r.max_lean_deg,
           r.route_polyline,
           encodePolyline(samplePoints(decodePolyline(r.route_polyline), PREVIEW_POINTS)),
           r.is_public ? 1 : 0,

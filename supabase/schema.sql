@@ -36,6 +36,7 @@ create table public.rides (
   avg_speed_kmh double precision not null default 0 check (avg_speed_kmh >= 0),
   max_speed_kmh double precision not null default 0 check (max_speed_kmh >= 0),
   elevation_gain_m double precision not null default 0 check (elevation_gain_m >= 0),
+  max_lean_deg double precision not null default 0 check (max_lean_deg between 0 and 90), -- estimated from GPS
   route_polyline text not null default '', -- Google encoded polyline, precision 5
   is_public boolean not null default false,
   created_at timestamptz not null default now(),

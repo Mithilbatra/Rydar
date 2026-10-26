@@ -185,6 +185,7 @@ function Records({ activity, rides, units }: { activity: (typeof ACTIVITY_TYPES)
     { icon: 'speedometer', title: 'Top speed', ride: b.fastest, value: b.fastest ? joinMeasure(fmtSpeed(b.fastest.maxSpeedKmh, units)) : '' },
     { icon: 'trending-up', title: 'Biggest climb', ride: b.biggestClimb, value: b.biggestClimb ? joinMeasure(fmtElevation(b.biggestClimb.elevationGainM, units)) : '' },
     { icon: 'time', title: 'Longest time', ride: b.longestTime, value: b.longestTime ? formatDurationShort(b.longestTime.durationSeconds) : '' },
+    { icon: 'compass-outline', title: 'Max lean', ride: b.maxLean, value: b.maxLean ? `${Math.round(b.maxLean.maxLeanDeg)}°` : '' },
   ];
   return (
     <View style={styles.card}>
