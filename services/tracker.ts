@@ -1,13 +1,21 @@
 import { ACTIVITIES } from '@/lib/activities';
 import type { ActivityType, GpsFix, LatLng, RideStats, Waypoint } from '@/types';
 import { avgSpeedKmh, mpsToKmh } from '@/utils/format';
-import { haversineMeters, stepElevation } from '@/utils/geo';
+import { bearingDeg, haversineMeters, leanAngleDeg, stepElevation, turnDeg } from '@/utils/geo';
 
 /** Fixes less accurate than this are ignored. */
 export const MAX_ACCURACY_M = 30;
 /** Moves shorter than this are GPS drift while standing still. */
 export const MIN_MOVE_M = 3;
 const ROUTE_CHUNK = 500;
+/** Below ~15 km/h the GPS heading is too jittery to estimate lean. */
+export const MIN_LEAN_SPEED_MS = 4;
+/** Hops shorter than this give a noisy heading, so the lean estimate waits for a longer one. */
+const MIN_LEAN_MOVE_M = 5;
+/** Caps GPS noise; no road or track lean gets past this. */
+export const MAX_LEAN_DEG = 65;
+/** Weight of the newest lean estimate; the rest is the previous value (smoothing). */
+const LEAN_SMOOTHING = 0.5;
 
 export type TrackerStatus = 'recording' | 'paused' | 'stopped';
 
@@ -27,6 +35,11 @@ export interface TrackerState {
   elevationGainM: number;
   elevationRef: number | null;
   currentSpeedMs: number;
+  /** Bearing of the last hop long enough to trust, for the turn rate. */
+  bearing: number | null;
+  /** Estimated lean, degrees; positive is leaning right. */
+  leanDeg: number;
+  maxLeanDeg: number;
   lastFixAt: number | null;
   lastAccuracy: number | null;
   /**
@@ -52,6 +65,9 @@ export function startTracker(activity: ActivityType, at: number): TrackerState {
     elevationGainM: 0,
     elevationRef: null,
     currentSpeedMs: 0,
+    bearing: null,
+    leanDeg: 0,
+    maxLeanDeg: 0,
     lastFixAt: null,
     lastAccuracy: null,
     route: [[]],
@@ -68,9 +84,10 @@ export function applyFix(s: TrackerState, fix: GpsFix): { state: TrackerState; k
   const prev = s.last?.segment === s.segment ? s.last : null;
 
   let moved = 0;
+  let dt = 0;
   let impliedMs: number | null = null;
   if (prev) {
-    const dt = (fix.timestamp - prev.timestamp) / 1000;
+    dt = (fix.timestamp - prev.timestamp) / 1000;
     if (dt <= 0) return { state: s, kept: null };
     moved = haversineMeters(prev, fix);
     impliedMs = moved / dt;
@@ -91,6 +108,7 @@ export function applyFix(s: TrackerState, fix: GpsFix): { state: TrackerState; k
     timestamp: fix.timestamp,
   };
   const elevation = stepElevation(s.elevationRef, s.elevationGainM, fix.altitude);
+  const steer = nextLean(s, prev, fix, speed, moved, dt);
   const point = { latitude: fix.latitude, longitude: fix.longitude };
   const route = s.route.slice();
   const tail = route[route.length - 1];
@@ -107,15 +125,36 @@ export function applyFix(s: TrackerState, fix: GpsFix): { state: TrackerState; k
       elevationGainM: elevation.gain,
       elevationRef: elevation.ref,
       currentSpeedMs: speed,
+      bearing: steer.bearing,
+      leanDeg: steer.leanDeg,
+      maxLeanDeg: Math.max(s.maxLeanDeg, Math.abs(steer.leanDeg)),
       route,
     },
     kept,
   };
 }
 
+/** Lean from speed and how fast the heading turns between hops (see leanAngleDeg). */
+function nextLean(
+  s: TrackerState,
+  prev: Waypoint | null,
+  fix: GpsFix,
+  speed: number,
+  moved: number,
+  dt: number,
+): { bearing: number | null; leanDeg: number } {
+  if (!prev) return { bearing: null, leanDeg: 0 };
+  if (moved < MIN_LEAN_MOVE_M) return { bearing: s.bearing, leanDeg: speed < MIN_LEAN_SPEED_MS ? 0 : s.leanDeg };
+  const bearing = bearingDeg(prev, fix);
+  if (s.bearing == null || speed < MIN_LEAN_SPEED_MS) return { bearing, leanDeg: 0 };
+  const raw = leanAngleDeg(speed, turnDeg(s.bearing, bearing) / dt);
+  const capped = Math.max(-MAX_LEAN_DEG, Math.min(MAX_LEAN_DEG, raw));
+  return { bearing, leanDeg: s.leanDeg + LEAN_SMOOTHING * (capped - s.leanDeg) };
+}
+
 export function pauseTracker(s: TrackerState, at: number): TrackerState {
   if (s.status !== 'recording') return s;
-  return { ...s, status: 'paused', pausedAt: at, currentSpeedMs: 0 };
+  return { ...s, status: 'paused', pausedAt: at, currentSpeedMs: 0, leanDeg: 0 };
 }
 
 export function resumeTracker(s: TrackerState, at: number): TrackerState {
@@ -133,7 +172,7 @@ export function resumeTracker(s: TrackerState, at: number): TrackerState {
 export function stopTracker(s: TrackerState, at: number): TrackerState {
   if (s.status === 'stopped') return s;
   const pausedMs = s.pausedAt != null ? s.pausedMs + Math.max(0, at - s.pausedAt) : s.pausedMs;
-  return { ...s, status: 'stopped', endedAt: at, pausedMs, pausedAt: null, currentSpeedMs: 0 };
+  return { ...s, status: 'stopped', endedAt: at, pausedMs, pausedAt: null, currentSpeedMs: 0, leanDeg: 0 };
 }
 
 /** Riding time: wall clock minus pauses. */
@@ -152,6 +191,7 @@ export function summarize(s: TrackerState, now: number): RideStats {
     avgSpeedKmh: avgSpeedKmh(distanceKm, durationSeconds),
     maxSpeedKmh: mpsToKmh(s.maxSpeedMs),
     elevationGainM: s.elevationGainM,
+    maxLeanDeg: s.maxLeanDeg,
   };
 }
 

@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 
 export const db = SQLite.openDatabaseSync('rydar.db');
 
-// Version 1. A future change bumps PRAGMA user_version and adds an ALTER step here.
+// Schema version 2. Each change adds an idempotent upgrade step below and bumps user_version.
 db.execSync(`
   PRAGMA journal_mode = WAL;
   CREATE TABLE IF NOT EXISTS rides (
@@ -16,6 +16,7 @@ db.execSync(`
     avg_speed_kmh REAL NOT NULL DEFAULT 0,
     max_speed_kmh REAL NOT NULL DEFAULT 0,
     elevation_gain_m REAL NOT NULL DEFAULT 0,
+    max_lean_deg REAL NOT NULL DEFAULT 0,
     route_polyline TEXT NOT NULL DEFAULT '',
     preview TEXT NOT NULL DEFAULT '',
     is_public INTEGER NOT NULL DEFAULT 0,
@@ -34,5 +35,10 @@ db.execSync(`
     timestamp INTEGER NOT NULL,
     PRIMARY KEY (ride_id, seq)
   ) WITHOUT ROWID;
-  PRAGMA user_version = 1;
 `);
+
+// v1 -> v2: lean angle. New installs already have the column from CREATE TABLE.
+if (!db.getAllSync<{ name: string }>('PRAGMA table_info(rides)').some((c) => c.name === 'max_lean_deg')) {
+  db.execSync('ALTER TABLE rides ADD COLUMN max_lean_deg REAL NOT NULL DEFAULT 0');
+}
+db.execSync('PRAGMA user_version = 2');
