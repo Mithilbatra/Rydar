@@ -2,11 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FilterChips } from '@/components/FilterChips';
 import { GradientButton } from '@/components/GradientButton';
+import { NumberPlate } from '@/components/NumberPlate';
+import { RaceTag } from '@/components/RaceTag';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
@@ -46,7 +48,29 @@ export default function SettingsScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + space.md, paddingBottom: insets.bottom + 110 }]}>
-      <ScreenHeader title="Settings" />
+      <ScreenHeader eyebrow="Pit lane" title="Settings" tagColor={accent} />
+
+      <Section title="Rider">
+        <View style={styles.row}>
+          <NumberPlate number={settings.raceNumber} color={accent} size={52} />
+          <View style={styles.rowText}>
+            <Text style={styles.rowTitle}>Race number</Text>
+            <Text style={type.caption}>Shown on your number plate. Up to two digits.</Text>
+          </View>
+          <TextInput
+            value={settings.raceNumber}
+            onChangeText={(text) => update({ raceNumber: text.replace(/\D/g, '').slice(0, 2) })}
+            keyboardType="number-pad"
+            maxLength={2}
+            selectTextOnFocus
+            placeholder="–"
+            placeholderTextColor={colors.textFaint}
+            selectionColor={accent}
+            style={styles.numberInput}
+            accessibilityLabel="Race number"
+          />
+        </View>
+      </Section>
 
       <Section title="Units">
         <FilterChips<UnitSystem>
@@ -117,7 +141,7 @@ export default function SettingsScreen() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text style={type.label}>{title}</Text>
+      <RaceTag label={title} color={colors.race} solid={false} small />
       <View style={styles.card}>{children}</View>
     </View>
   );
@@ -160,5 +184,15 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   rowText: { flex: 1, gap: 2 },
-  rowTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.text },
+  rowTitle: { fontFamily: fonts.displayItalic, fontSize: 18, color: colors.text, textTransform: 'uppercase' },
+  numberInput: {
+    width: 64,
+    height: 48,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceRaised,
+    color: colors.text,
+    fontFamily: fonts.black,
+    fontSize: 26,
+    textAlign: 'center',
+  },
 });

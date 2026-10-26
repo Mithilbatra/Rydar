@@ -28,6 +28,7 @@ yarn-error.*
 
 # macOS
 .DS_Store
+Icon?
 *.pem
 
 # local env files (keep .env.example)

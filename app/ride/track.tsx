@@ -1,27 +1,31 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, BackHandler, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ActivityIcon } from '@/components/ActivityIcon';
 import { Glass } from '@/components/Glass';
 import { GradientButton } from '@/components/GradientButton';
 import { HoldButton } from '@/components/HoldButton';
+import { RaceTag } from '@/components/RaceTag';
+import { RevBar } from '@/components/RevBar';
 import { RouteMap } from '@/components/RouteMap';
-import { SpeedGauge } from '@/components/SpeedGauge';
+import { StartLights } from '@/components/StartLights';
 import { Stat } from '@/components/Stat';
+import { Tile } from '@/components/Tile';
 import { useRideTracker } from '@/hooks/useRideTracker';
 import { useSettings } from '@/hooks/useSettings';
 import { ACTIVITIES } from '@/lib/activities';
 import { colors, fonts, radius, space, type } from '@/lib/theme';
+import { listRides } from '@/services/rides';
 import type { ActivityType } from '@/types';
 import { avgSpeedKmh, fmtDistance, fmtElevation, fmtSpeed, formatDuration, kmToMiles, mpsToKmh } from '@/utils/format';
+import { bests } from '@/utils/stats';
 
-const CONTROL_SIZE = 88;
+const CONTROL_SIZE = 84;
 
 export default function Track() {
   useKeepAwake();
@@ -32,14 +36,27 @@ export default function Track() {
   const { height } = useWindowDimensions();
   const [stopping, setStopping] = useState(false);
   const [panelHeight, setPanelHeight] = useState(0);
+  // A resumed ride skips the start lights.
+  const [lightsOut, setLightsOut] = useState(Boolean(params.resume));
+  const [bestTopSpeedKmh, setBestTopSpeedKmh] = useState<number | null>(null);
   const started = useRef(false);
 
+  const { state, phase } = tracker;
+  const activity: ActivityType = state?.activity ?? (params.activity === 'motorbike' ? 'motorbike' : 'bicycle');
+  const config = ACTIVITIES[activity];
+  const units = settings.units;
+
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    if (params.resume) tracker.recover(params.resume);
-    else tracker.begin(params.activity === 'motorbike' ? 'motorbike' : 'bicycle');
+    if (params.resume && !started.current) {
+      started.current = true;
+      tracker.recover(params.resume);
+    }
   });
+
+  // The previous top speed for this activity, so a new record lights up purple as it happens.
+  useEffect(() => {
+    listRides().then((rides) => setBestTopSpeedKmh(bests(rides, activity).fastest?.maxSpeedKmh ?? null));
+  }, [activity]);
 
   // Android back button must not drop a live ride; finishing is done with the hold button.
   useEffect(() => {
@@ -47,10 +64,12 @@ export default function Track() {
     return () => sub.remove();
   }, []);
 
-  const { state, phase } = tracker;
-  const activity: ActivityType = state?.activity ?? (params.activity === 'motorbike' ? 'motorbike' : 'bicycle');
-  const config = ACTIVITIES[activity];
-  const units = settings.units;
+  const go = () => {
+    setLightsOut(true);
+    if (started.current) return;
+    started.current = true;
+    tracker.begin(activity);
+  };
 
   if (phase === 'denied') {
     return (
@@ -72,63 +91,99 @@ export default function Track() {
   const paused = state?.status === 'paused';
   const distanceKm = (state?.distanceM ?? 0) / 1000;
   const elapsed = tracker.elapsedSeconds;
-  const speed = fmtSpeed(mpsToKmh(tracker.currentSpeedMs), units, 0);
-  const gaugeMax = units === 'imperial' ? kmToMiles(config.gaugeMaxKmh) : config.gaugeMaxKmh;
+  const speedKmh = mpsToKmh(tracker.currentSpeedMs);
+  const speed = fmtSpeed(speedKmh, units, 0);
+  const scaleMax = units === 'imperial' ? kmToMiles(config.gaugeMaxKmh) : config.gaugeMaxKmh;
   const distance = fmtDistance(distanceKm, units);
   const avg = fmtSpeed(avgSpeedKmh(distanceKm, elapsed), units);
-  const max = fmtSpeed(mpsToKmh(state?.maxSpeedMs ?? 0), units);
+  const topKmh = mpsToKmh(state?.maxSpeedMs ?? 0);
+  const top = fmtSpeed(topKmh, units);
+  const newRecord = bestTopSpeedKmh != null && topKmh > bestTopSpeedKmh;
   const elevation = fmtElevation(state?.elevationGainM ?? 0, units);
-  const gaugeSize = Math.min(250, height * 0.29);
+  const speedSize = Math.min(128, height * 0.15);
 
   const stop = async () => {
     setStopping(true);
-    const id = await tracker.stop();
-    if (id) router.replace({ pathname: '/ride/summary/[id]', params: { id } });
-    else router.back();
+    try {
+      const id = await tracker.stop();
+      if (id) router.replace({ pathname: '/ride/summary/[id]', params: { id } });
+      else router.back();
+    } catch (e) {
+      // Every point is already on the phone, so the ride shows up as unfinished on Home and can be finished there.
+      Alert.alert('Could not finish the ride', e instanceof Error ? e.message : String(e), [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    }
   };
 
   return (
     <View style={styles.screen}>
       <RouteMap route={state?.route ?? [[]]} accent={config.accent} live bottomInset={panelHeight - 24} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={['rgba(7,8,11,0.85)', 'transparent']} style={[styles.topFade, { height: insets.top + 90 }]} pointerEvents="none" />
+      <LinearGradient colors={['rgba(8,8,10,0.9)', 'transparent']} style={[styles.topFade, { height: insets.top + 90 }]} pointerEvents="none" />
 
-      <View style={[styles.topBar, { top: insets.top + 8 }]}>
-        <Glass style={styles.statusPill}>
-          {paused ? (
-            <Ionicons name="pause" size={14} color={colors.warning} />
-          ) : (
-            <PulseDot color={state ? colors.danger : colors.textDim} />
-          )}
-          <Text style={[styles.statusText, paused && { color: colors.warning }]}>
-            {!state ? 'Starting' : paused ? 'Paused' : 'Recording'}
-          </Text>
-          <View style={styles.divider} />
-          <ActivityIcon type={activity} size={18} color={config.accent} />
-        </Glass>
-        <Glass style={styles.statusPill}>
-          <GpsBars accuracy={state?.lastAccuracy ?? null} active={state?.lastFixAt != null} />
-          <Text style={styles.statusText}>{state?.lastFixAt != null ? 'GPS' : 'Finding GPS'}</Text>
-        </Glass>
+      <View style={[styles.topBar, { top: insets.top + 10 }]}>
+        {state?.status === 'stopped' ? (
+          <RaceTag
+            label="Chequered flag"
+            color={colors.text}
+            icon={<MaterialCommunityIcons name="flag-checkered" size={14} color={colors.bg} />}
+          />
+        ) : paused ? (
+          <RaceTag label="Yellow flag · paused" color={colors.warning} icon={<Ionicons name="flag" size={13} color={colors.bg} />} />
+        ) : state ? (
+          <RaceTag label="Live" color={colors.race} textColor={colors.text} icon={<PulseDot />} />
+        ) : (
+          <RaceTag label="On the grid" color={colors.textDim} solid={false} />
+        )}
+        <RaceTag
+          label={state?.lastFixAt != null ? 'GPS' : 'Finding GPS'}
+          color={colors.success}
+          solid={false}
+          icon={<GpsBars accuracy={state?.lastAccuracy ?? null} active={state?.lastFixAt != null} />}
+        />
       </View>
 
       <Glass style={[styles.panel, { paddingBottom: insets.bottom + space.lg }]} onLayout={(e) => setPanelHeight(e.nativeEvent.layout.height)}>
-        <View style={[styles.gauge, paused && styles.dimmed]}>
-          <SpeedGauge value={Number(speed.value)} max={gaugeMax} gradient={config.gradient} size={gaugeSize}>
-            <Text style={[styles.speed, { fontSize: gaugeSize * 0.36, lineHeight: gaugeSize * 0.4 }]} accessibilityLabel={`Speed ${speed.value} ${speed.unit}`}>
+        <View style={[styles.stripe, { backgroundColor: config.accent }]} />
+        <View style={paused && styles.dimmed}>
+          <RevBar value={Number(speed.value)} max={scaleMax} />
+          <View style={styles.speedRow}>
+            <Text
+              style={[styles.speed, { fontSize: speedSize, lineHeight: speedSize * 1.02 }]}
+              accessibilityLabel={`Speed ${speed.value} ${speed.unit}`}>
               {speed.value}
             </Text>
-            <Text style={styles.speedUnit}>{speed.unit}</Text>
-          </SpeedGauge>
+            <View style={styles.speedSide}>
+              <Text style={styles.speedUnit}>{speed.unit}</Text>
+              <RaceTag label={config.label} color={config.accent} small />
+            </View>
+          </View>
         </View>
 
-        <View style={styles.statsRow}>
-          <Stat label="Time" value={formatDuration(elapsed)} size="lg" align="center" />
-          <Stat label="Distance" value={distance.value} unit={distance.unit} size="lg" align="center" color={config.accent} />
+        <View style={styles.tiles}>
+          <Tile accent={colors.text} style={styles.flex}>
+            <Stat label="Ride time" value={formatDuration(elapsed)} size="lg" />
+          </Tile>
+          <Tile accent={config.accent} style={styles.flex}>
+            <Stat label="Distance" value={distance.value} unit={distance.unit} size="lg" color={config.accent} />
+          </Tile>
         </View>
-        <View style={[styles.statsRow, styles.smallStats]}>
-          <Stat label="Avg" value={avg.value} unit={avg.unit} size="sm" align="center" />
-          <Stat label="Max" value={max.value} unit={max.unit} size="sm" align="center" />
-          <Stat label="Climb" value={elevation.value} unit={elevation.unit} size="sm" align="center" />
+        <View style={styles.tiles}>
+          <Tile style={styles.flex}>
+            <Stat label="Avg" value={avg.value} unit={avg.unit} size="sm" />
+          </Tile>
+          <Tile accent={newRecord ? colors.record : undefined} style={styles.flex}>
+            <Stat
+              label={newRecord ? 'Record' : 'Top speed'}
+              value={top.value}
+              unit={top.unit}
+              size="sm"
+              color={newRecord ? colors.record : colors.text}
+            />
+          </Tile>
+          <Tile style={styles.flex}>
+            <Stat label="Climb" value={elevation.value} unit={elevation.unit} size="sm" />
+          </Tile>
         </View>
 
         {tracker.gpsError && <Text style={styles.gpsError}>GPS problem: {tracker.gpsError}</Text>}
@@ -144,13 +199,19 @@ export default function Track() {
                   accessibilityLabel={paused ? 'Resume ride' : 'Pause ride'}
                   onPress={paused ? tracker.resume : tracker.pause}
                   style={({ pressed }) => [styles.control, pressed && styles.pressed]}>
-                  {paused ? (
+                  {state?.status === 'stopped' ? (
+          <RaceTag
+            label="Chequered flag"
+            color={colors.text}
+            icon={<MaterialCommunityIcons name="flag-checkered" size={14} color={colors.bg} />}
+          />
+        ) : paused ? (
                     <LinearGradient colors={config.gradient} style={styles.controlFill}>
-                      <Ionicons name="play" size={36} color={colors.bg} />
+                      <Ionicons name="play" size={34} color={colors.bg} />
                     </LinearGradient>
                   ) : (
                     <View style={[styles.controlFill, styles.pauseFill]}>
-                      <Ionicons name="pause" size={36} color={colors.text} />
+                      <Ionicons name="pause" size={34} color={colors.warning} />
                     </View>
                   )}
                 </Pressable>
@@ -161,23 +222,25 @@ export default function Track() {
                 color={colors.danger}
                 size={CONTROL_SIZE}
                 onComplete={stop}
-                icon={<Ionicons name="stop" size={32} color={colors.danger} />}
+                icon={<MaterialCommunityIcons name="flag-checkered" size={34} color={colors.text} />}
               />
             </>
           )}
         </View>
       </Glass>
+
+      {!lightsOut && <StartLights accent={config.accent} onDone={go} />}
     </View>
   );
 }
 
-function PulseDot({ color }: { color: string }) {
+function PulseDot() {
   const opacity = useSharedValue(1);
   useEffect(() => {
-    opacity.set(withRepeat(withTiming(0.25, { duration: 800 }), -1, true));
+    opacity.set(withRepeat(withTiming(0.25, { duration: 700 }), -1, true));
   }, [opacity]);
   const style = useAnimatedStyle(() => ({ opacity: opacity.get() }));
-  return <Animated.View style={[styles.pulseDot, { backgroundColor: color }, style]} />;
+  return <Animated.View style={[styles.pulseDot, style]} />;
 }
 
 /** Signal bars from the GPS accuracy radius: under 10 m is strong, over 20 m is weak. */
@@ -187,7 +250,7 @@ function GpsBars({ accuracy, active }: { accuracy: number | null; active: boolea
   return (
     <View style={styles.bars} accessibilityLabel={`GPS signal ${['searching', 'weak', 'fair', 'strong'][level]}`}>
       {[1, 2, 3].map((b) => (
-        <View key={b} style={[styles.bar, { height: 4 + b * 4, backgroundColor: b <= level ? color : colors.textFaint }]} />
+        <View key={b} style={[styles.bar, { height: 4 + b * 3, backgroundColor: b <= level ? color : colors.textFaint }]} />
       ))}
     </View>
   );
@@ -195,20 +258,18 @@ function GpsBars({ accuracy, active }: { accuracy: number | null; active: boolea
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
+  flex: { flex: 1 },
   topFade: { position: 'absolute', top: 0, left: 0, right: 0 },
   topBar: { position: 'absolute', left: space.lg, right: space.lg, flexDirection: 'row', justifyContent: 'space-between' },
-  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 14, borderRadius: radius.pill },
-  statusText: { fontFamily: fonts.display, fontSize: 15, letterSpacing: 1.4, color: colors.text, textTransform: 'uppercase' },
-  divider: { width: StyleSheet.hairlineWidth, height: 18, backgroundColor: colors.border },
-  pulseDot: { width: 10, height: 10, borderRadius: 5 },
+  pulseDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.text },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
-  bar: { width: 4, borderRadius: 1 },
+  bar: { width: 3, borderRadius: 1 },
   panel: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingTop: space.md,
+    paddingTop: space.lg,
     paddingHorizontal: space.xl,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
@@ -216,23 +277,19 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 0,
     gap: space.md,
   },
-  gauge: { alignItems: 'center', marginBottom: -space.md },
-  dimmed: { opacity: 0.4 },
-  speed: { fontFamily: fonts.displayItalic, color: colors.text, fontVariant: ['tabular-nums'] },
-  speedUnit: { fontFamily: fonts.semibold, fontSize: 16, color: colors.textDim, letterSpacing: 1, marginTop: -4 },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  smallStats: {
-    paddingVertical: space.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
+  stripe: { position: 'absolute', top: 0, left: space.xl, right: space.xl, height: 3, borderRadius: 2 },
+  dimmed: { opacity: 0.45 },
+  speedRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.md, marginTop: space.xs },
+  speed: { fontFamily: fonts.black, color: colors.text, fontVariant: ['tabular-nums'], includeFontPadding: false },
+  speedSide: { paddingBottom: space.lg, gap: space.sm },
+  speedUnit: { fontFamily: fonts.displayItalic, fontSize: 22, color: colors.textDim, letterSpacing: 1.5, textTransform: 'uppercase' },
+  tiles: { flexDirection: 'row', gap: space.md },
   gpsError: { color: colors.warning, fontSize: 13, textAlign: 'center' },
   controls: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'flex-start', paddingTop: space.xs },
   controlWrap: { alignItems: 'center', gap: 8 },
   control: { width: CONTROL_SIZE, height: CONTROL_SIZE, borderRadius: CONTROL_SIZE / 2, overflow: 'hidden' },
   controlFill: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  pauseFill: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  pauseFill: { backgroundColor: 'rgba(255,214,10,0.12)', borderWidth: 2, borderColor: 'rgba(255,214,10,0.5)', borderRadius: CONTROL_SIZE / 2 },
   controlLabel: { fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 1.4, color: colors.textDim, textTransform: 'uppercase' },
   pressed: { transform: [{ scale: 0.95 }] },
   denied: { alignItems: 'center', justifyContent: 'center', gap: space.lg, paddingHorizontal: space.xl },

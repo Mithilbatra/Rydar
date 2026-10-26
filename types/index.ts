@@ -60,4 +60,6 @@ export interface Settings {
   units: UnitSystem;
   defaultPublic: boolean;
   lastActivity: ActivityType;
+  /** Shown on the rider's number plate; up to two digits. */
+  raceNumber: string;
 }

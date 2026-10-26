@@ -1,6 +1,7 @@
 import { BarlowCondensed_600SemiBold } from '@expo-google-fonts/barlow-condensed/600SemiBold';
 import { BarlowCondensed_700Bold } from '@expo-google-fonts/barlow-condensed/700Bold';
 import { BarlowCondensed_800ExtraBold_Italic } from '@expo-google-fonts/barlow-condensed/800ExtraBold_Italic';
+import { BarlowCondensed_900Black_Italic } from '@expo-google-fonts/barlow-condensed/900Black_Italic';
 import { useFonts } from 'expo-font';
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -37,6 +38,7 @@ function RootStack() {
     BarlowCondensed_600SemiBold,
     BarlowCondensed_700Bold,
     BarlowCondensed_800ExtraBold_Italic,
+    BarlowCondensed_900Black_Italic,
   });
   const loaded = ready && (fontsLoaded || fontError != null);
 

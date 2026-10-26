@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -8,7 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityFilter, matchesFilter, type ActivityFilterValue } from '@/components/ActivityFilter';
 import { ActivityIcon } from '@/components/ActivityIcon';
 import { Bars } from '@/components/Bars';
+import { NumberPlate } from '@/components/NumberPlate';
+import { RaceTag } from '@/components/RaceTag';
 import { Stat } from '@/components/Stat';
+import { Tile } from '@/components/Tile';
 import { useAuth } from '@/hooks/useAuth';
 import { useRides } from '@/hooks/useRides';
 import { useSettings } from '@/hooks/useSettings';
@@ -35,7 +37,6 @@ import {
 } from '@/utils/stats';
 
 const EARTH_KM = 40_075;
-const BRAND = ['#C8FF2E', '#FF6A1F'] as const;
 
 export default function Profile() {
   const insets = useSafeAreaInsets();
@@ -47,6 +48,7 @@ export default function Profile() {
 
   const shown = rides.filter(matchesFilter(filter));
   const accent = filter === 'all' ? colors.text : ACTIVITIES[filter].accent;
+  const riderColor = ACTIVITIES[settings.lastActivity].accent;
   const now = Date.now();
   const week = startOfWeek(now);
   const month = startOfMonth(now);
@@ -68,16 +70,9 @@ export default function Profile() {
       contentContainerStyle={[styles.content, { paddingTop: insets.top + space.md, paddingBottom: insets.bottom + 110 }]}
       showsVerticalScrollIndicator={false}>
       <View style={styles.identity}>
-        <LinearGradient colors={BRAND} style={styles.avatarRing}>
-          <View style={styles.avatar}>
-            {email ? (
-              <Text style={styles.avatarLetter}>{email[0].toUpperCase()}</Text>
-            ) : (
-              <Ionicons name="person" size={30} color={colors.text} />
-            )}
-          </View>
-        </LinearGradient>
+        <NumberPlate number={settings.raceNumber} color={riderColor} size={64} />
         <View style={styles.flex}>
+          <RaceTag label="Rider profile" color={riderColor} solid={false} small />
           <Text style={type.title} numberOfLines={1}>
             {email ? email.split('@')[0] : 'Guest rider'}
           </Text>
@@ -92,7 +87,7 @@ export default function Profile() {
       <ActivityFilter value={filter} onChange={setFilter} />
 
       <View style={styles.hero}>
-        <Text style={type.label}>All-time distance</Text>
+        <RaceTag label="All-time distance" color={filter === 'all' ? colors.race : accent} small />
         <Text style={[styles.heroValue, { color: accent }]}>
           {distance.value}
           <Text style={styles.heroUnit}> {distance.unit}</Text>
@@ -105,18 +100,18 @@ export default function Profile() {
       </View>
 
       <View style={styles.grid}>
-        <View style={styles.cell}>
+        <Tile accent={colors.text} style={styles.cell}>
           <Stat label="Rides" value={String(all.count)} />
-        </View>
-        <View style={styles.cell}>
+        </Tile>
+        <Tile accent={colors.text} style={styles.cell}>
           <Stat label="Moving time" value={formatDurationShort(all.durationSeconds)} />
-        </View>
-        <View style={styles.cell}>
+        </Tile>
+        <Tile accent="#6FA8FF" style={styles.cell}>
           <Stat label="Climbed" value={elevation.value} unit={elevation.unit} />
-        </View>
-        <View style={styles.cell}>
+        </Tile>
+        <Tile accent={colors.warning} style={styles.cell}>
           <Stat label="Week streak" value={String(streak)} unit={streak === 1 ? 'week' : 'weeks'} />
-        </View>
+        </Tile>
       </View>
 
       <View style={styles.row}>
@@ -125,7 +120,7 @@ export default function Profile() {
       </View>
 
       <View style={styles.card}>
-        <Text style={type.label}>Last 12 weeks</Text>
+        <RaceTag label="Last 12 weeks" color={filter === 'all' ? colors.race : accent} solid={false} small />
         <Bars
           values={weeks.map((w) => w.km)}
           labels={weeks.map((w, i) =>
@@ -133,7 +128,7 @@ export default function Profile() {
               ? new Date(w.start).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
               : '',
           )}
-          color={filter === 'all' ? BRAND[0] : accent}
+          color={filter === 'all' ? colors.race : accent}
           height={96}
         />
       </View>
@@ -162,7 +157,7 @@ function PeriodCard({
   const change = percentChange(current, previous);
   const d = fmtDistance(current, units);
   return (
-    <View style={[styles.card, styles.flex]}>
+    <Tile style={styles.flex}>
       <Text style={type.label}>{title}</Text>
       <Text style={styles.periodValue}>
         {d.value}
@@ -177,7 +172,7 @@ function PeriodCard({
           </Text>
         )}
       </Text>
-    </View>
+    </Tile>
   );
 }
 
@@ -193,10 +188,7 @@ function Records({ activity, rides, units }: { activity: (typeof ACTIVITY_TYPES)
   ];
   return (
     <View style={styles.card}>
-      <View style={styles.recordsHead}>
-        <ActivityIcon type={activity} size={20} color={accent} />
-        <Text style={[styles.recordsLabel, { color: accent }]}>{label}</Text>
-      </View>
+      <RaceTag label={label} color={accent} icon={<ActivityIcon type={activity} size={14} color={colors.bg} />} />
       {rows.map(({ ride, ...row }) =>
         ride ? (
           <Pressable
@@ -204,13 +196,15 @@ function Records({ activity, rides, units }: { activity: (typeof ACTIVITY_TYPES)
             accessibilityRole="button"
             onPress={() => router.push({ pathname: '/ride/[id]', params: { id: ride.id } })}
             style={({ pressed }) => [styles.recordRow, pressed && { opacity: 0.7 }]}>
+            <View style={styles.recordMark} />
             <Ionicons name={row.icon} size={18} color={colors.textDim} />
             <Text style={styles.recordTitle}>{row.title}</Text>
-            <Text style={styles.recordValue}>{row.value}</Text>
+            <Text style={[styles.recordValue, { color: colors.record }]}>{row.value}</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
           </Pressable>
         ) : (
           <View key={row.title} style={styles.recordRow}>
+            <View style={[styles.recordMark, { backgroundColor: colors.surfaceRaised }]} />
             <Ionicons name={row.icon} size={18} color={colors.textFaint} />
             <Text style={[styles.recordTitle, { color: colors.textFaint }]}>{row.title}</Text>
             <Text style={[styles.recordValue, { color: colors.textFaint }]}>—</Text>
@@ -226,23 +220,12 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: space.xl, gap: space.lg },
   flex: { flex: 1 },
   row: { flexDirection: 'row', gap: space.md },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
-  avatarRing: { width: 72, height: 72, borderRadius: 36, padding: 3 },
-  avatar: { flex: 1, borderRadius: 33, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
-  avatarLetter: { fontFamily: fonts.displayItalic, fontSize: 32, color: colors.text },
-  hero: { gap: 2, paddingVertical: space.sm },
-  heroValue: { fontFamily: fonts.displayItalic, fontSize: 76, lineHeight: 82, fontVariant: ['tabular-nums'] },
-  heroUnit: { fontFamily: fonts.display, fontSize: 26, color: colors.textDim },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: space.lg, paddingLeft: space.xs },
+  hero: { gap: 6, paddingVertical: space.sm },
+  heroValue: { fontFamily: fonts.black, fontSize: 84, lineHeight: 88, fontVariant: ['tabular-nums'] },
+  heroUnit: { fontFamily: fonts.displayItalic, fontSize: 28, color: colors.textDim, textTransform: 'uppercase' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
-  cell: {
-    flexGrow: 1,
-    flexBasis: '45%',
-    padding: space.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
+  cell: { flexGrow: 1, flexBasis: '45%', paddingVertical: space.lg },
   card: {
     gap: space.md,
     padding: space.lg,
@@ -251,12 +234,12 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
   },
-  periodValue: { fontFamily: fonts.display, fontSize: 32, color: colors.text, fontVariant: ['tabular-nums'] },
+  periodValue: { fontFamily: fonts.black, fontSize: 34, color: colors.text, fontVariant: ['tabular-nums'] },
   periodUnit: { fontFamily: fonts.semibold, fontSize: 16, color: colors.textDim },
   recordsTitle: { marginTop: space.md },
-  recordsHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  recordsLabel: { fontFamily: fonts.display, fontSize: 16, letterSpacing: 1.2, textTransform: 'uppercase' },
-  recordRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 36 },
+  recordRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 40 },
+  // Purple is the timing-screen colour for a best-ever time.
+  recordMark: { width: 4, height: 22, borderRadius: 2, backgroundColor: colors.record, transform: [{ skewX: '-12deg' }] },
   recordTitle: { flex: 1, fontSize: 15, color: colors.text },
-  recordValue: { fontFamily: fonts.display, fontSize: 18, color: colors.text, fontVariant: ['tabular-nums'] },
+  recordValue: { fontFamily: fonts.displayItalic, fontSize: 20, color: colors.text, fontVariant: ['tabular-nums'] },
 });

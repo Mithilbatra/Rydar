@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityToggle } from '@/components/ActivityToggle';
 import { Bars } from '@/components/Bars';
 import { GradientButton } from '@/components/GradientButton';
+import { NumberPlate } from '@/components/NumberPlate';
+import { RaceTag } from '@/components/RaceTag';
 import { RideCard } from '@/components/RideCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { StartButton } from '@/components/StartButton';
@@ -82,15 +84,17 @@ export default function Home() {
         <ScreenHeader
           eyebrow={name ? `${greeting(new Date(now).getHours())}, ${name}` : greeting(new Date(now).getHours())}
           title="Ready to ride?"
+          tagColor={accent}
+          right={<NumberPlate number={settings.raceNumber} color={accent} size={50} />}
         />
         <ActivityToggle value={activity} onChange={(v) => update({ lastActivity: v })} />
 
         {interrupted ? (
           <View style={styles.interrupted}>
             <View style={styles.interruptedHead}>
-              <Ionicons name="warning" size={22} color={colors.warning} />
               <View style={styles.flex}>
-                <Text style={type.heading}>Unfinished ride</Text>
+                <RaceTag label="Red flag" color={colors.danger} small icon={<Ionicons name="flag" size={12} color={colors.bg} />} />
+                <Text style={[type.heading, styles.interruptedTitle]}>Unfinished ride</Text>
                 <Text style={type.caption}>
                   Rydar closed while you were riding (started{' '}
                   {new Date(interrupted.startedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}). Every
@@ -120,7 +124,7 @@ export default function Home() {
 
         <View style={styles.card}>
           <View style={styles.cardHead}>
-            <Text style={type.label}>This week · {label}</Text>
+            <RaceTag label={`This week · ${label}`} color={accent} small />
             {change != null && (
               <View style={[styles.delta, { backgroundColor: change >= 0 ? `${colors.success}1A` : `${colors.danger}1A` }]}>
                 <Ionicons
@@ -153,7 +157,7 @@ export default function Home() {
 
         {own[0] && (
           <View style={styles.section}>
-            <Text style={type.label}>Last {label.toLowerCase()} ride</Text>
+            <RaceTag label={`Last ${label} ride`} color={accent} solid={false} small />
             <RideCard ride={own[0]} units={settings.units} showSync={session != null} />
           </View>
         )}
@@ -174,10 +178,11 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.lg,
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(255,197,61,0.06)',
+    backgroundColor: 'rgba(255,46,58,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,197,61,0.3)',
+    borderColor: 'rgba(255,46,58,0.35)',
   },
+  interruptedTitle: { marginTop: space.sm },
   interruptedHead: { flexDirection: 'row', gap: space.md },
   card: {
     gap: space.lg,
@@ -191,9 +196,9 @@ const styles = StyleSheet.create({
   delta: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, height: 24, borderRadius: radius.pill },
   deltaText: { fontFamily: fonts.semibold, fontSize: 13 },
   weekRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.xl },
-  weekValue: { flex: 1, fontFamily: fonts.displayItalic, fontSize: 56, lineHeight: 60, color: colors.text },
+  weekValue: { flex: 1, fontFamily: fonts.black, fontSize: 60, lineHeight: 64, color: colors.text },
   weekUnit: { fontFamily: fonts.display, fontSize: 22, color: colors.textDim },
   weekSide: { alignItems: 'flex-end', paddingBottom: 6 },
-  sideValue: { fontFamily: fonts.display, fontSize: 22, color: colors.text },
+  sideValue: { fontFamily: fonts.displayItalic, fontSize: 24, color: colors.text },
   section: { gap: space.md },
 });

@@ -22,7 +22,8 @@ interface Props {
 export function RouteMap({ route, accent, live = false, interactive = true, bottomInset = 0, style }: Props) {
   const map = useRef<MapView>(null);
   const [follow, setFollow] = useState(true);
-  const centered = useRef(false);
+  // Camera moves sent before the map is ready are dropped.
+  const ready = useRef(false);
 
   const all = live ? [] : route.flat();
   const first = all[0];
@@ -57,17 +58,20 @@ export function RouteMap({ route, accent, live = false, interactive = true, bott
         scrollEnabled={interactive}
         zoomEnabled={interactive}
         mapPadding={{ top: 0, left: 0, right: 0, bottom: bottomInset }}
-        onMapReady={fitRoute}
+        onMapReady={() => {
+          ready.current = true;
+          fitRoute();
+        }}
         onPanDrag={live ? () => setFollow(false) : undefined}
         onUserLocationChange={(e) => {
           const c = e.nativeEvent.coordinate;
-          if (!live || !follow || !c) return;
-          const center = { latitude: c.latitude, longitude: c.longitude };
-          // Zoom in once; after that keep whatever zoom the rider picked.
-          map.current?.animateCamera(centered.current ? { center } : { center, zoom: 16, altitude: 1200 }, {
-            duration: 500,
-          });
-          centered.current = true;
+          if (!live || !follow || !c || !ready.current) return;
+          // Every move carries the zoom: location updates can arrive faster than the animation and cut it short.
+          // zoom is for Google Maps, altitude for Apple Maps.
+          map.current?.animateCamera(
+            { center: { latitude: c.latitude, longitude: c.longitude }, zoom: 16, altitude: 1200 },
+            { duration: 500 },
+          );
         }}>
         {route.map((chunk, i) => (
           <RouteLine key={i} coordinates={chunk} accent={accent} />

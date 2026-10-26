@@ -77,7 +77,7 @@ export function HoldButton({
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', gap: 8 },
-  button: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,77,94,0.12)' },
+  button: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,46,58,0.12)' },
   pressed: { transform: [{ scale: 0.96 }] },
   label: { fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 1.4, color: colors.textDim, textTransform: 'uppercase' },
 });

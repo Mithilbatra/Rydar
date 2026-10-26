@@ -1,13 +1,24 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { type } from '@/lib/theme';
+import { RaceTag } from '@/components/RaceTag';
+import { colors, type } from '@/lib/theme';
 
-export function ScreenHeader({ eyebrow, title, right }: { eyebrow?: string; title: string; right?: ReactNode }) {
+export function ScreenHeader({
+  eyebrow,
+  title,
+  right,
+  tagColor = colors.race,
+}: {
+  eyebrow?: string;
+  title: string;
+  right?: ReactNode;
+  tagColor?: string;
+}) {
   return (
     <View style={styles.row}>
       <View style={styles.text}>
-        {eyebrow ? <Text style={type.label}>{eyebrow}</Text> : null}
+        {eyebrow ? <RaceTag label={eyebrow} color={tagColor} solid={false} small /> : null}
         <Text style={type.title} accessibilityRole="header">
           {title}
         </Text>
@@ -19,5 +30,5 @@ export function ScreenHeader({ eyebrow, title, right }: { eyebrow?: string; titl
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
-  text: { flex: 1, gap: 2 },
+  text: { flex: 1, gap: 8 },
 });

@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "rydar",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#07080B",
+    "backgroundColor": "#08080A",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.mithilbatra.rydar"
@@ -15,7 +15,7 @@
     "android": {
       "package": "com.mithilbatra.rydar",
       "adaptiveIcon": {
-        "backgroundColor": "#07080B",
+        "backgroundColor": "#08080A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
@@ -26,7 +26,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#07080B",
+          "backgroundColor": "#08080A",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 120
         }

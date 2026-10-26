@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActivityFilter, matchesFilter, type ActivityFilterValue } from '@/components/ActivityFilter';
 import { GradientButton } from '@/components/GradientButton';
+import { RaceTag } from '@/components/RaceTag';
 import { RideCard } from '@/components/RideCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuth } from '@/hooks/useAuth';
@@ -39,14 +40,14 @@ export default function History() {
           <View style={styles.header}>
             <ScreenHeader
               eyebrow={`${all.count} ${all.count === 1 ? 'ride' : 'rides'} · ${joinMeasure(fmtDistance(all.distanceKm, settings.units))}`}
-              title="History"
+              title="Race log"
             />
             <ActivityFilter value={filter} onChange={setFilter} />
           </View>
         }
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHead}>
-            <Text style={type.heading}>{section.title}</Text>
+            <RaceTag label={section.title} color={colors.race} solid={false} />
             <Text style={type.caption}>{joinMeasure(fmtDistance(section.distanceKm, settings.units))}</Text>
           </View>
         )}
