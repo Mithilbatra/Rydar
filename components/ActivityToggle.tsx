@@ -6,7 +6,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 
 import { ActivityIcon } from '@/components/ActivityIcon';
 import { ACTIVITIES, ACTIVITY_TYPES } from '@/lib/activities';
-import { colors, fonts, radius } from '@/lib/theme';
+import { colors, fonts, radius, SKEW } from '@/lib/theme';
 import type { ActivityType } from '@/types';
 
 const PAD = 4;
@@ -59,13 +59,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: 58,
     padding: PAD,
-    borderRadius: radius.pill,
+    marginHorizontal: 6,
+    borderRadius: radius.sm,
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
+    transform: [{ skewX: SKEW }],
   },
-  pill: { position: 'absolute', top: PAD, bottom: PAD, left: PAD, borderRadius: radius.pill, overflow: 'hidden' },
+  pill: { position: 'absolute', top: PAD, bottom: PAD, left: PAD, borderRadius: radius.sm - 2, overflow: 'hidden' },
   fill: { flex: 1 },
-  segment: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  label: { fontFamily: fonts.display, fontSize: 18, letterSpacing: 0.8, textTransform: 'uppercase' },
+  // Undo the track's slant so icons and labels stay upright.
+  segment: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    transform: [{ skewX: '12deg' }],
+  },
+  label: { fontFamily: fonts.black, fontSize: 19, letterSpacing: 1, textTransform: 'uppercase' },
 });

@@ -4,7 +4,7 @@ import { createContext, use, useState, type ReactNode } from 'react';
 import type { Settings } from '@/types';
 
 const KEY = 'settings';
-const DEFAULTS: Settings = { units: 'metric', defaultPublic: false, lastActivity: 'bicycle' };
+const DEFAULTS: Settings = { units: 'metric', defaultPublic: false, lastActivity: 'bicycle', raceNumber: '1' };
 
 function load(): Settings {
   try {

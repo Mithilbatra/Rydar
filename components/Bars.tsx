@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts } from '@/lib/theme';
+import { colors, fonts, SKEW } from '@/lib/theme';
 
 /** Simple bar chart; the highlighted bar is drawn in full colour. */
 export function Bars({
@@ -43,6 +43,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 6 },
   col: { flex: 1, alignItems: 'center', gap: 6 },
   slot: { width: '100%', justifyContent: 'flex-end' },
-  bar: { width: '100%', borderRadius: 6 },
+  bar: { width: '100%', borderRadius: 3, transform: [{ skewX: SKEW }] },
   label: { fontFamily: fonts.semibold, fontSize: 11, color: colors.textFaint, letterSpacing: 0.5 },
 });

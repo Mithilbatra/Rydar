@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, fonts, radius } from '@/lib/theme';
+import { colors, fonts, radius, SKEW } from '@/lib/theme';
 
 interface Props {
   label: string;
@@ -16,7 +16,7 @@ interface Props {
   style?: StyleProp<ViewStyle>;
 }
 
-const DEFAULT_GRADIENT = ['#E6FF6A', '#5CF27A'] as const;
+const DEFAULT_GRADIENT = ['#FF4B3A', colors.race] as const;
 
 export function GradientButton({
   label,
@@ -64,12 +64,20 @@ export function GradientButton({
   );
 }
 
+// Slanted like a race-graphic slab; the content is skewed back so text stays upright.
 const styles = StyleSheet.create({
-  base: { height: 60, borderRadius: radius.pill, overflow: 'hidden', justifyContent: 'center' },
+  base: {
+    height: 60,
+    marginHorizontal: 6,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    transform: [{ skewX: SKEW }],
+  },
   outline: { borderWidth: 1.5, borderColor: colors.border, backgroundColor: 'rgba(255,255,255,0.03)' },
   fill: { flex: 1, justifyContent: 'center' },
-  inner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  label: { fontFamily: fonts.display, fontSize: 20, letterSpacing: 1.2, textTransform: 'uppercase' },
-  pressed: { transform: [{ scale: 0.97 }], opacity: 0.92 },
+  inner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, transform: [{ skewX: '12deg' }] },
+  label: { fontFamily: fonts.black, fontSize: 22, letterSpacing: 1.4, textTransform: 'uppercase' },
+  pressed: { transform: [{ skewX: SKEW }, { scale: 0.97 }], opacity: 0.92 },
   disabled: { opacity: 0.5 },
 });

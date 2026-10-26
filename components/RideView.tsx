@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -8,10 +8,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActivityIcon } from '@/components/ActivityIcon';
 import { AreaChart } from '@/components/AreaChart';
+import { Chequered } from '@/components/Chequered';
 import { Glass } from '@/components/Glass';
 import { GradientButton } from '@/components/GradientButton';
+import { RaceTag } from '@/components/RaceTag';
 import { RouteMap } from '@/components/RouteMap';
 import { Stat } from '@/components/Stat';
+import { Tile } from '@/components/Tile';
 import { useSettings } from '@/hooks/useSettings';
 import { ACTIVITIES } from '@/lib/activities';
 import { colors, fonts, radius, space, type } from '@/lib/theme';
@@ -107,14 +110,18 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
         <View style={{ height: MAP_HEIGHT }}>
           <RouteMap route={route} accent={activity.accent} interactive={false} bottomInset={60} style={StyleSheet.absoluteFill} />
           <LinearGradient colors={['transparent', colors.bg]} style={styles.mapFade} pointerEvents="none" />
+          {/* The finish line. */}
+          <Chequered height={18} cell={9} opacity={0.85} style={styles.finishLine} />
         </View>
 
         <View style={styles.content}>
           <View style={styles.metaRow}>
-            <View style={[styles.activityChip, { borderColor: `${activity.accent}55` }]}>
-              <ActivityIcon type={ride.activityType} size={16} color={activity.accent} />
-              <Text style={[styles.activityText, { color: activity.accent }]}>{activity.label}</Text>
-            </View>
+            <RaceTag
+              label={activity.label}
+              color={activity.accent}
+              small
+              icon={<ActivityIcon type={ride.activityType} size={14} color={colors.bg} />}
+            />
             <Text style={type.caption}>{formatRideDate(ride.startedAt)}</Text>
           </View>
           <Text style={type.title}>{rideTitle(ride.startedAt, ride.activityType)}</Text>
@@ -129,27 +136,36 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
           {badges.length > 0 && (
             <View style={styles.badges}>
               {badges.map((b) => (
-                <View key={b} style={styles.badge}>
-                  <Ionicons name="trophy" size={14} color={colors.warning} />
-                  <Text style={styles.badgeText}>{b}</Text>
-                </View>
+                <RaceTag
+                  key={b}
+                  label={b}
+                  color={colors.record}
+                  textColor={colors.text}
+                  small
+                  icon={<Ionicons name="trophy" size={12} color={colors.text} />}
+                />
               ))}
             </View>
           )}
 
           <View style={styles.grid}>
-            <View style={styles.cell}>
+            <Tile accent={colors.text} style={styles.cell}>
               <Stat label="Moving time" value={formatDuration(ride.durationSeconds)} />
-            </View>
-            <View style={styles.cell}>
+            </Tile>
+            <Tile accent={ELEVATION_COLOR} style={styles.cell}>
               <Stat label="Elevation gain" value={elevation.value} unit={elevation.unit} />
-            </View>
-            <View style={styles.cell}>
+            </Tile>
+            <Tile accent={activity.accent} style={styles.cell}>
               <Stat label="Avg speed" value={avg.value} unit={avg.unit} />
-            </View>
-            <View style={styles.cell}>
-              <Stat label="Max speed" value={max.value} unit={max.unit} />
-            </View>
+            </Tile>
+            <Tile accent={badges.includes('Top speed') ? colors.record : activity.accent} style={styles.cell}>
+              <Stat
+                label="Top speed"
+                value={max.value}
+                unit={max.unit}
+                color={badges.includes('Top speed') ? colors.record : colors.text}
+              />
+            </Tile>
           </View>
 
           {speeds.length > 3 && (
@@ -205,10 +221,11 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
             </Glass>
           </Pressable>
         ) : (
-          <Glass style={styles.completePill}>
-            <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-            <Text style={styles.completeText}>Ride complete</Text>
-          </Glass>
+          <RaceTag
+            label="Chequered flag"
+            color={colors.text}
+            icon={<MaterialCommunityIcons name="flag-checkered" size={16} color={colors.bg} />}
+          />
         )}
       </View>
 
@@ -260,43 +277,15 @@ const styles = StyleSheet.create({
   missing: { alignItems: 'center', justifyContent: 'center', gap: space.xl, padding: space.xl },
   missingButton: { alignSelf: 'stretch' },
   mapFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 140 },
-  content: { marginTop: -56, paddingHorizontal: space.xl, gap: space.md },
+  finishLine: { position: 'absolute', left: 0, right: 0, bottom: 44 },
+  content: { marginTop: -20, paddingHorizontal: space.xl, gap: space.md },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  activityChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    height: 30,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    backgroundColor: 'rgba(7,8,11,0.6)',
-  },
-  activityText: { fontFamily: fonts.display, fontSize: 14, letterSpacing: 1, textTransform: 'uppercase' },
   hero: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: -4 },
-  heroValue: { fontFamily: fonts.displayItalic, fontSize: 104, lineHeight: 112, fontVariant: ['tabular-nums'] },
-  heroUnit: { fontFamily: fonts.display, fontSize: 28, color: colors.textDim },
+  heroValue: { fontFamily: fonts.black, fontSize: 112, lineHeight: 118, fontVariant: ['tabular-nums'] },
+  heroUnit: { fontFamily: fonts.displayItalic, fontSize: 30, color: colors.textDim, textTransform: 'uppercase' },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    height: 30,
-    borderRadius: radius.pill,
-    backgroundColor: 'rgba(255,197,61,0.12)',
-  },
-  badgeText: { fontFamily: fonts.semibold, fontSize: 14, color: colors.warning, letterSpacing: 0.4 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
-  cell: {
-    flexGrow: 1,
-    flexBasis: '45%',
-    padding: space.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
+  cell: { flexGrow: 1, flexBasis: '45%', paddingVertical: space.lg },
   card: {
     padding: space.lg,
     gap: space.md,
@@ -309,17 +298,8 @@ const styles = StyleSheet.create({
   topFade: { position: 'absolute', top: 0, left: 0, right: 0 },
   visibility: { flexDirection: 'row', alignItems: 'center' },
   visibilityText: { flex: 1, gap: 2 },
-  visibilityTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.text },
+  visibilityTitle: { fontFamily: fonts.displayItalic, fontSize: 18, color: colors.text, textTransform: 'uppercase' },
   topBar: { position: 'absolute', left: space.lg, right: space.lg, flexDirection: 'row' },
   roundButton: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  completePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    height: 40,
-    borderRadius: radius.pill,
-  },
-  completeText: { fontFamily: fonts.display, fontSize: 16, color: colors.text, letterSpacing: 1.2, textTransform: 'uppercase' },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: space.xl, paddingTop: 40, gap: 10 },
 });

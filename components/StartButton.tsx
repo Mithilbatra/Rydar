@@ -73,6 +73,6 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   fill: { flex: 1, borderRadius: SIZE / 2, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  label: { fontFamily: fonts.displayItalic, fontSize: 40, color: colors.bg, letterSpacing: 2 },
+  label: { fontFamily: fonts.black, fontSize: 44, color: colors.bg, letterSpacing: 2 },
   pressed: { transform: [{ scale: 0.95 }] },
 });

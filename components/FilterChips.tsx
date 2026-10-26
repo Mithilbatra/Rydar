@@ -1,8 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, radius } from '@/lib/theme';
+import { colors, fonts, radius, SKEW } from '@/lib/theme';
 
 export interface ChipOption<T extends string> {
   value: T;
@@ -35,8 +35,10 @@ export function FilterChips<T extends string>({
               onChange(o.value);
             }}
             style={[styles.chip, selected && { backgroundColor: o.color ?? colors.text, borderColor: 'transparent' }]}>
-            {o.icon?.(fg)}
-            <Text style={[styles.label, { color: fg }]}>{o.label}</Text>
+            <View style={styles.unskew}>
+              {o.icon?.(fg)}
+              <Text style={[styles.label, { color: fg }]}>{o.label}</Text>
+            </View>
           </Pressable>
         );
       })}
@@ -45,17 +47,17 @@ export function FilterChips<T extends string>({
 }
 
 const styles = StyleSheet.create({
-  row: { gap: 8 },
+  row: { gap: 8, paddingHorizontal: 4 },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
     paddingHorizontal: 16,
     height: 38,
-    borderRadius: radius.pill,
+    borderRadius: radius.sm / 2,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+    transform: [{ skewX: SKEW }],
   },
-  label: { fontFamily: fonts.display, fontSize: 16, letterSpacing: 0.6, textTransform: 'uppercase' },
+  unskew: { flexDirection: 'row', alignItems: 'center', gap: 6, transform: [{ skewX: '12deg' }] },
+  label: { fontFamily: fonts.displayItalic, fontSize: 16, letterSpacing: 0.8, textTransform: 'uppercase' },
 });

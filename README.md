@@ -6,12 +6,14 @@ Everything in the first version is free. See [What costs money](#what-is-free-an
 
 ## Features
 
-- **Live ride:** dark full-screen map with a neon route, a 240° speed gauge, big stat cards, Pause/Resume, and **press-and-hold to finish** (no accidental stops from a bump or a glove). The screen stays awake.
-- **Bicycle / motorbike:** each ride stores its activity type. GPS spike filtering uses a different plausible top speed for each (100 km/h for a bicycle, 350 km/h for a motorbike). Records are always kept per activity, so a motorbike top speed never shows up as a cycling record. The app's accent colour follows the activity: lime for bicycle, orange for motorbike.
+- **Race-broadcast look:** black-italic numbers, slanted race tags and timing-tower tiles, a chequered finish line, and timing-screen colours (purple = a record, yellow = paused, red = live).
+- **Start lights:** five red lights come on one by one, then go out and the ride starts. Tap to skip; with Reduce Motion on it starts straight away.
+- **Live ride:** dark full-screen map with a neon route, a race-dash HUD (shift-light bar, huge speed readout, ride time, distance, avg, top speed, climb), Pause/Resume, and **press-and-hold to finish** (no accidental stops from a bump or a glove). Top speed turns purple the moment it beats your record for that activity. The screen stays awake.
+- **Bicycle / motorbike:** each ride stores its activity type. GPS spike filtering uses a different plausible top speed for each (100 km/h for a bicycle, 350 km/h for a motorbike). Records are always kept per activity, so a motorbike top speed never shows up as a cycling record. The app's accent colour follows the activity: fluo yellow for bicycle, MotoGP red for motorbike.
 - **Ride summary:** route map with start and finish markers, distance, moving time, avg and max speed, elevation gain, speed and elevation charts, record badges, public/private toggle, Save or Discard.
 - **History:** rides grouped by month, each with a small drawing of its route, filterable by activity.
 - **Profile:** all-time totals, this week and this month compared with the last, the last 12 weeks as bars, week streak, and personal records per activity.
-- **Settings:** km or miles, default ride visibility, account, sync status with a "Sync now" button.
+- **Settings:** race number for your number plate, km or miles, default ride visibility, account, sync status with a "Sync now" button.
 - **Offline first:** every GPS point is written to SQLite as it arrives. If the app is killed mid-ride, Home offers to **Resume, Finish or Discard** it. Rides wait in a queue and upload when there is a connection.
 - **Accounts:** email/password through Supabase Auth, or **ride as a guest** with no account and no backend at all.
 
@@ -41,7 +43,7 @@ app/                     screens (Expo Router: each file is a route)
   ride/track.tsx         live ride
   ride/summary/[id].tsx  after a ride: save or discard
   ride/[id].tsx          ride details
-components/              StartButton, HoldButton, SpeedGauge, RouteMap, RouteGlyph, RideCard, RideView, Stat, …
+components/              StartButton, StartLights, RevBar, RaceTag, Tile, NumberPlate, HoldButton, RouteMap, RideView, …
 hooks/                   useAuth, useSettings, useRides, useRideTracker
 services/tracker.ts      pure ride state: GPS filtering, distance, speeds, climb, pauses (unit tested)
 services/rides.ts        SQLite reads/writes, upload queue, pull from Supabase

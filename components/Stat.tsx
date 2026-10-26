@@ -40,7 +40,7 @@ export function Stat({
 const styles = StyleSheet.create({
   center: { alignItems: 'center' },
   row: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
-  value: { fontFamily: fonts.display, fontVariant: ['tabular-nums'] },
-  italic: { fontFamily: fonts.displayItalic },
+  value: { fontFamily: fonts.displayItalic, fontVariant: ['tabular-nums'] },
+  italic: { fontFamily: fonts.black },
   unit: { fontFamily: fonts.semibold, color: colors.textDim, letterSpacing: 0.5 },
 });

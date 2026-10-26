@@ -6,22 +6,22 @@ interface ActivityConfig {
   gradient: readonly [string, string];
   /** Faster than this between two fixes is a GPS spike, not riding. */
   maxPlausibleKmh: number;
-  /** Full scale of the live speed gauge. */
+  /** Speed that fills the shift-light bar on the live screen. */
   gaugeMaxKmh: number;
 }
 
 export const ACTIVITIES: Record<ActivityType, ActivityConfig> = {
   bicycle: {
     label: 'Bicycle',
-    accent: '#C8FF2E',
-    gradient: ['#E6FF6A', '#5CF27A'],
+    accent: '#D4FF00', // fluo yellow, like the most famous livery in the paddock
+    gradient: ['#F2FF5C', '#9DFF00'],
     maxPlausibleKmh: 100,
     gaugeMaxKmh: 60,
   },
   motorbike: {
     label: 'Motorbike',
-    accent: '#FF6A1F',
-    gradient: ['#FFB23E', '#FF3B2F'],
+    accent: '#FF2A2A', // MotoGP red
+    gradient: ['#FF6A3D', '#D7001B'],
     maxPlausibleKmh: 350,
     gaugeMaxKmh: 200,
   },
