@@ -53,6 +53,13 @@ describe('tracker', () => {
     expect(s.distanceM).toBeCloseTo(33.4, 0);
   });
 
+  it('ignores a cached fix from before the ride, so it adds no jump', () => {
+    const cached = fix(0, { latitude: 12.9 - 0.045, timestamp: T0 - 300_000 }); // 5 km away, 5 minutes old
+    const { s, kept } = ride('bicycle', [cached, fix(0), fix(1), fix(2)]);
+    expect(kept.map((k) => k.timestamp)).toEqual([T0, T0 + 1000, T0 + 2000]);
+    expect(s.distanceM).toBeCloseTo(22.2, 0);
+  });
+
   it('a speed that is fine on a motorbike is a spike on a bicycle', () => {
     const fast = [fix(0, { speed: 45 }), fix(1, { latitude: 12.9 + 0.0004, speed: 45 })]; // ~44 m/s = 160 km/h
     expect(ride('bicycle', fast).kept).toHaveLength(1);

@@ -14,6 +14,8 @@ export const MIN_LEAN_SPEED_MS = 4;
 const MIN_LEAN_MOVE_M = 5;
 /** Caps GPS noise; no road or track lean gets past this. */
 export const MAX_LEAN_DEG = 65;
+/** A fix this much older than the ride start is a cached reading from somewhere else. */
+const MAX_FIX_AGE_MS = 30_000;
 /** Weight of the newest lean estimate; the rest is the previous value (smoothing). */
 const LEAN_SMOOTHING = 0.5;
 
@@ -76,6 +78,10 @@ export function startTracker(activity: ActivityType, at: number): TrackerState {
 
 export function applyFix(s: TrackerState, fix: GpsFix): { state: TrackerState; kept: Waypoint | null } {
   if (s.status !== 'recording') return { state: s, kept: null };
+  // iOS can hand over its last cached fix first; taking it would add a jump from wherever the phone was.
+  // shortcut: compares the fix clock with the phone clock; on Android, where fix time can come from GPS,
+  // a phone clock running 30 s+ fast would drop real fixes too. Use the fix's elapsed-realtime if that bites.
+  if (fix.timestamp < s.startedAt - MAX_FIX_AGE_MS) return { state: s, kept: null };
   const seen: TrackerState = { ...s, lastFixAt: fix.timestamp, lastAccuracy: fix.accuracy };
   if (fix.accuracy != null && fix.accuracy > MAX_ACCURACY_M) return { state: seen, kept: null };
 
