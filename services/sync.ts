@@ -42,6 +42,14 @@ async function uploadPending(): Promise<number> {
   const userId = data.session?.user.id;
   if (!userId) return 0;
 
+  // Deletes go first, so a ride deleted on this phone can never come back from the cloud.
+  const deleted = (await db.getAllAsync<{ id: string }>('SELECT id FROM deleted_rides')).map((d) => d.id);
+  if (deleted.length > 0) {
+    const { error } = await supabase.from('rides').delete().in('id', deleted); // waypoints follow by cascade
+    if (error) throw error;
+    await db.runAsync(`DELETE FROM deleted_rides WHERE id IN (${deleted.map(() => '?').join(', ')})`, deleted);
+  }
+
   const pending = await db.getAllAsync<RideRow>(
     `SELECT * FROM rides WHERE status = 'finished' AND synced_at IS NULL ORDER BY started_at`,
   );
@@ -107,8 +115,10 @@ export async function pullRemoteRides() {
   if (error) throw error;
 
   const now = Date.now();
+  const deleted = new Set((await db.getAllAsync<{ id: string }>('SELECT id FROM deleted_rides')).map((d) => d.id));
   await db.withTransactionAsync(async () => {
     for (const r of data as RemoteRide[]) {
+      if (deleted.has(r.id)) continue; // deleted here; its cloud copy goes on the next sync
       await db.runAsync(
         `INSERT OR IGNORE INTO rides (id, activity_type, status, started_at, ended_at, distance_km, duration_seconds,
            avg_speed_kmh, max_speed_kmh, elevation_gain_m, max_lean_deg, route_polyline, preview, is_public, synced_at, created_at)

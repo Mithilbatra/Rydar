@@ -1,5 +1,4 @@
 import { db } from '@/lib/db';
-import { supabase } from '@/lib/supabase';
 import { replayTracker, stopTracker, summarize } from '@/services/tracker';
 import type { ActivityType, Ride, RideListItem, RideStats, Waypoint } from '@/types';
 import { encodePolyline, samplePoints } from '@/utils/polyline';
@@ -143,10 +142,10 @@ export async function deleteRide(id: string) {
   await db.withTransactionAsync(async () => {
     await db.runAsync('DELETE FROM waypoints WHERE ride_id = ?', [id]);
     await db.runAsync('DELETE FROM rides WHERE id = ?', [id]);
+    // A sync may already have uploaded it: the next sync deletes the cloud copy, and pulls skip it until then.
+    await db.runAsync('INSERT OR IGNORE INTO deleted_rides (id) VALUES (?)', [id]);
   });
   notify();
-  // A sync may already have uploaded it; waypoints follow by cascade.
-  if (supabase) supabase.from('rides').delete().eq('id', id).then(() => {});
 }
 
 export async function countUnsynced(): Promise<number> {

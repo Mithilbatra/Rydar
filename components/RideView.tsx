@@ -100,6 +100,7 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
         style: 'destructive',
         onPress: async () => {
           await deleteRide(ride.id);
+          syncPendingRides().catch(() => {}); // removes any cloud copy now, or on the next sync when offline
           router.back();
         },
       },

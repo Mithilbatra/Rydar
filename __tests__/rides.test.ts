@@ -3,6 +3,7 @@ import {
   addWaypoint,
   countUnsynced,
   createRide,
+  deleteRide,
   finishInterruptedRide,
   finishRide,
   getRide,
@@ -134,7 +135,7 @@ async function recordAndFinish(id: string) {
 }
 
 beforeEach(() => {
-  db.execSync('DELETE FROM rides; DELETE FROM waypoints;');
+  db.execSync('DELETE FROM rides; DELETE FROM waypoints; DELETE FROM deleted_rides;');
   remote.rides.clear();
   remote.waypoints.clear();
   remote.offline = false;
@@ -157,6 +158,25 @@ describe('sync', () => {
 
     expect(await syncPendingRides()).toBe(0);
     expect(remote.waypoints.size).toBe(6);
+  });
+
+  it('a ride deleted while offline stays deleted: no pull brings it back, and the next sync removes it from the cloud', async () => {
+    await recordAndFinish('gone');
+    await syncPendingRides();
+    expect(remote.rides.has('gone')).toBe(true);
+
+    remote.offline = true;
+    await deleteRide('gone');
+    await expect(syncPendingRides()).rejects.toBeTruthy();
+
+    // Signal is back; on app start the app pulls first, then syncs.
+    remote.offline = false;
+    await pullRemoteRides();
+    expect(await listRides()).toEqual([]);
+    await syncPendingRides();
+    expect(remote.rides.has('gone')).toBe(false);
+    expect(remote.waypoints.size).toBe(0);
+    expect(db.getAllSync('SELECT id FROM deleted_rides')).toEqual([]);
   });
 
   it('pulling brings back account rides missing on this phone and keeps local ones', async () => {
