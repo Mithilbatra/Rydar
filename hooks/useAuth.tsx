@@ -4,7 +4,7 @@ import { createContext, use, useEffect, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
-import { pullRemoteRides, syncPendingRides } from '@/services/rides';
+import { pullRemoteRides, syncPendingRides } from '@/services/sync';
 
 const GUEST_KEY = 'guest';
 const NOT_CONFIGURED = 'Accounts are off: add your Supabase keys to .env (see README).';

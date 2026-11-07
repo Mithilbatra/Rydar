@@ -14,7 +14,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
 import { ACTIVITIES } from '@/lib/activities';
 import { colors, fonts, radius, space, type } from '@/lib/theme';
-import { countUnsynced, onRidesChanged, syncPendingRides } from '@/services/rides';
+import { countUnsynced, onRidesChanged } from '@/services/rides';
+import { syncPendingRides } from '@/services/sync';
 import type { UnitSystem } from '@/types';
 
 export default function SettingsScreen() {
