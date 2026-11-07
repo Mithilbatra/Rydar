@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -45,11 +45,13 @@ export default function Profile() {
   const units = settings.units;
   const rides = useRides() ?? [];
   const [filter, setFilter] = useState<ActivityFilterValue>('all');
+  // Read on focus, not during render: the tab stays mounted across week and month changes.
+  const [now, setNow] = useState(Date.now);
+  useFocusEffect(useCallback(() => setNow(Date.now()), []));
 
   const shown = rides.filter(matchesFilter(filter));
   const accent = filter === 'all' ? colors.text : ACTIVITIES[filter].accent;
   const riderColor = ACTIVITIES[settings.lastActivity].accent;
-  const now = Date.now();
   const week = startOfWeek(now);
   const month = startOfMonth(now);
   const all = totals(shown);

@@ -38,16 +38,18 @@ export default function Home() {
   const { session } = useAuth();
   const rides = useRides();
   const [interrupted, setInterrupted] = useState<RideListItem | null>(null);
+  // Read on focus, not during render: the tab stays mounted across midnight and week changes.
+  const [now, setNow] = useState(Date.now);
 
   useFocusEffect(
     useCallback(() => {
+      setNow(Date.now());
       getInterruptedRide().then(setInterrupted);
     }, []),
   );
 
   const activity = settings.lastActivity;
   const { accent, label } = ACTIVITIES[activity];
-  const now = Date.now();
   const own = (rides ?? []).filter((r) => r.activityType === activity);
   const week = startOfWeek(now);
   const thisWeek = totals(inRange(own, week, Infinity));
