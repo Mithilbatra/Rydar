@@ -18,7 +18,8 @@ import { Tile } from '@/components/Tile';
 import { useSettings } from '@/hooks/useSettings';
 import { ACTIVITIES } from '@/lib/activities';
 import { colors, fonts, radius, space, type } from '@/lib/theme';
-import { deleteRide, getRide, getWaypoints, listRides, setRidePublic, syncPendingRides } from '@/services/rides';
+import { deleteRide, getRide, getWaypoints, listRides, setRidePublic } from '@/services/rides';
+import { syncPendingRides } from '@/services/sync';
 import type { LatLng, Ride, RideListItem, Waypoint } from '@/types';
 import {
   fmtDistance,
@@ -80,7 +81,9 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
 
   const togglePublic = (value: boolean) => {
     setRide({ ...ride, isPublic: value });
-    setRidePublic(ride.id, value);
+    setRidePublic(ride.id, value)
+      .then(syncPendingRides)
+      .catch(() => {}); // stays queued when offline
   };
 
   const save = () => {
