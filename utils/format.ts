@@ -6,7 +6,6 @@ const FT_PER_M = 3.28084;
 
 export const mpsToKmh = (mps: number) => mps * 3.6;
 export const kmToMiles = (km: number) => km / KM_PER_MILE;
-export const msToSeconds = (ms: number) => Math.floor(ms / 1000);
 
 export function avgSpeedKmh(distanceKm: number, seconds: number): number {
   return seconds > 0 ? distanceKm / (seconds / 3600) : 0;
