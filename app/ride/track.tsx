@@ -47,10 +47,16 @@ export default function Track() {
   const config = ACTIVITIES[activity];
   const units = settings.units;
 
+  // Until the ride exists this screen has no controls and back is blocked, so a failed start must lead out.
+  const failedToStart = (e: unknown) =>
+    Alert.alert('Could not start the ride', e instanceof Error ? e.message : String(e), [
+      { text: 'OK', onPress: () => router.back() },
+    ]);
+
   useEffect(() => {
     if (params.resume && !started.current) {
       started.current = true;
-      tracker.recover(params.resume);
+      tracker.recover(params.resume).catch(failedToStart);
     }
   });
 
@@ -69,7 +75,7 @@ export default function Track() {
     setLightsOut(true);
     if (started.current) return;
     started.current = true;
-    tracker.begin(activity);
+    tracker.begin(activity).catch(failedToStart);
   };
 
   if (phase === 'denied') {
