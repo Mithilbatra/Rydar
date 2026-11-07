@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 
 export const db = SQLite.openDatabaseSync('rydar.db');
 
-// Schema version 2. Each change adds an idempotent upgrade step below and bumps user_version.
+// Schema version 3. Each change adds an idempotent upgrade step below and bumps user_version.
 db.execSync(`
   PRAGMA journal_mode = WAL;
   CREATE TABLE IF NOT EXISTS rides (
@@ -35,10 +35,13 @@ db.execSync(`
     timestamp INTEGER NOT NULL,
     PRIMARY KEY (ride_id, seq)
   ) WITHOUT ROWID;
+  -- Rides deleted on this phone whose cloud copy may still exist; cleared once the cloud delete succeeds.
+  CREATE TABLE IF NOT EXISTS deleted_rides (id TEXT PRIMARY KEY NOT NULL) WITHOUT ROWID;
 `);
 
 // v1 -> v2: lean angle. New installs already have the column from CREATE TABLE.
 if (!db.getAllSync<{ name: string }>('PRAGMA table_info(rides)').some((c) => c.name === 'max_lean_deg')) {
   db.execSync('ALTER TABLE rides ADD COLUMN max_lean_deg REAL NOT NULL DEFAULT 0');
 }
-db.execSync('PRAGMA user_version = 2');
+// v2 -> v3: deleted_rides, made by its CREATE TABLE IF NOT EXISTS above.
+db.execSync('PRAGMA user_version = 3');
