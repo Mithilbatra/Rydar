@@ -129,6 +129,7 @@ Expo Go must match the project's SDK (58). The App Store version of Expo Go alwa
 ```bash
 npm test            # tracker + utils unit tests
 npm run typecheck
+npm run lint
 npx expo-doctor
 ```
 
