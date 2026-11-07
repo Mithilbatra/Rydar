@@ -21,6 +21,8 @@ export interface RideRow {
   preview: string;
   is_public: number;
   synced_at: number | null;
+  /** 1 once the ride's points are in the cloud; they never change after a ride ends. */
+  points_synced: number;
   created_at: number;
 }
 

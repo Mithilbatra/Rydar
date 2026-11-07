@@ -8,6 +8,7 @@ import {
   finishRide,
   getRide,
   listRides,
+  setRidePublic,
 } from '@/services/rides';
 import { pullRemoteRides, syncPendingRides } from '@/services/sync';
 import { applyFix, pauseTracker, resumeTracker, startTracker, stopTracker, summarize } from '@/services/tracker';
@@ -41,18 +42,28 @@ jest.mock('expo-sqlite', () => {
 });
 
 type Row = Record<string, unknown>;
+type MockHook = (call: string) => void;
 interface Remote {
   rides: Map<string, Row>;
   waypoints: Map<string, Row>;
   offline: boolean;
   calls: string[];
+  /** Runs as each call reaches the server, to change things mid-sync. */
+  hook: MockHook | null;
 }
 
 // A Supabase stand-in with just the calls the app makes; `offline` makes every call fail like a dropped connection.
 jest.mock('@/lib/supabase', () => {
-  const remote = { rides: new Map(), waypoints: new Map(), offline: false, calls: [] as string[] };
+  const remote = {
+    rides: new Map(),
+    waypoints: new Map(),
+    offline: false,
+    calls: [] as string[],
+    hook: null as MockHook | null,
+  };
   const reply = (call: string, run: () => object) => {
     remote.calls.push(call);
+    remote.hook?.(call);
     return Promise.resolve(
       remote.offline ? { data: null, error: { message: 'Network request failed' } } : { error: null, ...run() },
     );
@@ -140,6 +151,7 @@ beforeEach(() => {
   remote.waypoints.clear();
   remote.offline = false;
   remote.calls.length = 0;
+  remote.hook = null;
 });
 
 describe('sync', () => {
@@ -177,6 +189,36 @@ describe('sync', () => {
     expect(remote.rides.has('gone')).toBe(false);
     expect(remote.waypoints.size).toBe(0);
     expect(db.getAllSync('SELECT id FROM deleted_rides')).toEqual([]);
+  });
+
+  it('flipping visibility of an uploaded ride re-sends only the ride row, not its points', async () => {
+    await recordAndFinish('ride-v');
+    await syncPendingRides();
+    remote.calls.length = 0;
+
+    await setRidePublic('ride-v', true);
+    expect(await syncPendingRides()).toBe(1);
+    expect(remote.calls).toEqual(['rides.upsert']);
+    expect(remote.rides.get('ride-v')).toMatchObject({ is_public: true });
+    expect(remote.waypoints.size).toBe(6);
+    expect(await countUnsynced()).toBe(0);
+  });
+
+  it('a visibility flip during an upload keeps the ride queued until the cloud has the new value', async () => {
+    await recordAndFinish('ride-r');
+    remote.hook = (call) => {
+      if (call === 'waypoints.upsert') setRidePublic('ride-r', true); // runs before the upload marks the ride synced
+    };
+    await syncPendingRides();
+    expect(remote.rides.get('ride-r')).toMatchObject({ is_public: false });
+    expect(await countUnsynced()).toBe(1);
+
+    remote.hook = null;
+    remote.calls.length = 0;
+    await syncPendingRides();
+    expect(remote.rides.get('ride-r')).toMatchObject({ is_public: true });
+    expect(remote.calls).toEqual(['rides.upsert']); // the points went up the first time
+    expect(await countUnsynced()).toBe(0);
   });
 
   it('pulling brings back account rides missing on this phone and keeps local ones', async () => {
