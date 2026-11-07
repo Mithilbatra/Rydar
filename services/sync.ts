@@ -71,21 +71,25 @@ async function uploadPending(): Promise<number> {
     });
     if (error) throw error;
 
-    const points = await getWaypoints(row.id);
-    for (let i = 0; i < points.length; i += UPLOAD_CHUNK) {
-      const { error: pointsError } = await supabase.from('waypoints').upsert(
-        points.slice(i, i + UPLOAD_CHUNK).map((p) => ({
-          ride_id: row.id,
-          seq: p.seq,
-          latitude: p.latitude,
-          longitude: p.longitude,
-          altitude: p.altitude,
-          speed: p.speed,
-          timestamp: new Date(p.timestamp).toISOString(),
-        })),
-        { onConflict: 'ride_id,seq', ignoreDuplicates: true },
-      );
-      if (pointsError) throw pointsError;
+    // A visibility flip brings an uploaded ride back here; its points are already in the cloud.
+    if (!row.points_synced) {
+      const points = await getWaypoints(row.id);
+      for (let i = 0; i < points.length; i += UPLOAD_CHUNK) {
+        const { error: pointsError } = await supabase.from('waypoints').upsert(
+          points.slice(i, i + UPLOAD_CHUNK).map((p) => ({
+            ride_id: row.id,
+            seq: p.seq,
+            latitude: p.latitude,
+            longitude: p.longitude,
+            altitude: p.altitude,
+            speed: p.speed,
+            timestamp: new Date(p.timestamp).toISOString(),
+          })),
+          { onConflict: 'ride_id,seq', ignoreDuplicates: true },
+        );
+        if (pointsError) throw pointsError;
+      }
+      await db.runAsync('UPDATE rides SET points_synced = 1 WHERE id = ?', [row.id]);
     }
     // Only mark synced if visibility did not change while we were uploading.
     await db.runAsync('UPDATE rides SET synced_at = ? WHERE id = ? AND is_public = ?', [

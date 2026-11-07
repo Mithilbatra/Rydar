@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 
 export const db = SQLite.openDatabaseSync('rydar.db');
 
-// Schema version 3. Each change adds an idempotent upgrade step below and bumps user_version.
+// Schema version 4. Each change adds an idempotent upgrade step below and bumps user_version.
 db.execSync(`
   PRAGMA journal_mode = WAL;
   CREATE TABLE IF NOT EXISTS rides (
@@ -21,6 +21,7 @@ db.execSync(`
     preview TEXT NOT NULL DEFAULT '',
     is_public INTEGER NOT NULL DEFAULT 0,
     synced_at INTEGER,
+    points_synced INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS rides_started_at ON rides (started_at DESC);
@@ -44,4 +45,11 @@ if (!db.getAllSync<{ name: string }>('PRAGMA table_info(rides)').some((c) => c.n
   db.execSync('ALTER TABLE rides ADD COLUMN max_lean_deg REAL NOT NULL DEFAULT 0');
 }
 // v2 -> v3: deleted_rides, made by its CREATE TABLE IF NOT EXISTS above.
-db.execSync('PRAGMA user_version = 3');
+// v3 -> v4: points_synced. A ride already synced has its points in the cloud.
+if (!db.getAllSync<{ name: string }>('PRAGMA table_info(rides)').some((c) => c.name === 'points_synced')) {
+  db.execSync(`
+    ALTER TABLE rides ADD COLUMN points_synced INTEGER NOT NULL DEFAULT 0;
+    UPDATE rides SET points_synced = 1 WHERE synced_at IS NOT NULL;
+  `);
+}
+db.execSync('PRAGMA user_version = 4');
