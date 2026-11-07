@@ -15,10 +15,11 @@ import { RaceTag } from '@/components/RaceTag';
 import { RouteMap } from '@/components/RouteMap';
 import { Stat } from '@/components/Stat';
 import { Tile } from '@/components/Tile';
+import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
 import { ACTIVITIES } from '@/lib/activities';
 import { colors, fonts, radius, space, type } from '@/lib/theme';
-import { deleteRide, getRide, getWaypoints, listRides, setRidePublic } from '@/services/rides';
+import { deleteRide, getRide, getWaypoints, listRides, onRidesChanged, setRidePublic } from '@/services/rides';
 import { syncPendingRides } from '@/services/sync';
 import type { LatLng, Ride, RideListItem, Waypoint } from '@/types';
 import {
@@ -40,6 +41,7 @@ const ELEVATION_COLOR = '#6FA8FF';
 /** Ride summary (right after stopping: save or discard) and ride details share this screen. */
 export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details' }) {
   const { settings } = useSettings();
+  const { session } = useAuth();
   const units = settings.units;
   const insets = useSafeAreaInsets();
   const [ride, setRide] = useState<Ride | null | undefined>(undefined);
@@ -53,6 +55,10 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
       setAllRides(all);
     });
   }, [id]);
+
+  // Picks up the sync result, so the visibility card shows when the cloud has caught up.
+  // A deleted ride keeps its last state; the screen is closing anyway.
+  useEffect(() => onRidesChanged(() => getRide(id).then((r) => r && setRide(r))), [id]);
 
   if (ride === undefined) return <View style={styles.screen} />;
   if (ride === null) {
@@ -80,7 +86,7 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
   const elevation = fmtElevation(ride.elevationGainM, units);
 
   const togglePublic = (value: boolean) => {
-    setRide({ ...ride, isPublic: value });
+    setRide({ ...ride, isPublic: value, syncedAt: null });
     setRidePublic(ride.id, value)
       .then(syncPendingRides)
       .catch(() => {}); // stays queued when offline
@@ -206,7 +212,7 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
             <Ionicons name={ride.isPublic ? 'globe-outline' : 'lock-closed'} size={22} color={colors.text} />
             <View style={styles.visibilityText}>
               <Text style={styles.visibilityTitle}>{ride.isPublic ? 'Public ride' : 'Private ride'}</Text>
-              <Text style={type.caption}>{ride.isPublic ? 'Others can see this ride' : 'Only you can see this ride'}</Text>
+              <Text style={type.caption}>{visibilityCaption(ride.isPublic, session != null, ride.syncedAt != null)}</Text>
             </View>
             <Switch
               value={ride.isPublic}
@@ -255,6 +261,15 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
       )}
     </View>
   );
+}
+
+/** What the switch really means right now: nothing leaves the phone without an account, and the cloud lags until a sync. */
+function visibilityCaption(isPublic: boolean, signedIn: boolean, synced: boolean): string {
+  if (!signedIn) return isPublic ? 'Stays on this phone: you are not signed in' : 'Only you can see this ride';
+  if (!synced) return isPublic ? 'Public once it syncs' : 'Private on this phone; the cloud copy changes on the next sync';
+  return isPublic
+    ? "Anyone with the app's Supabase key can read this route, including where it starts and ends"
+    : 'Only you can see this ride';
 }
 
 function splitBySegment(points: Waypoint[]): LatLng[][] {
