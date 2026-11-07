@@ -136,6 +136,29 @@ describe('tracker', () => {
       expect(s.maxLeanDeg).toBeLessThan(0.5);
     });
 
+    it('reads slow turns where each hop is under 5 m', () => {
+      // 5 m/s (18 km/h) around a 20 m radius: tan(lean) = v²/(r·g), about 7.3°.
+      const { s } = ride('bicycle', circle(5, 20, 1, 20));
+      expect(s.leanDeg).toBeGreaterThan(6);
+      expect(s.maxLeanDeg).toBeLessThan(9);
+    });
+
+    it('hops that jitter around 5 m do not inflate the estimate', () => {
+      let arc = 0;
+      const fixes = Array.from({ length: 20 }, (_, i) => {
+        arc += i % 2 ? 5.5 : 4.5; // 5 m/s on average, same 20 m radius: about 7.3°
+        return fix(0, {
+          latitude: LAT0 + (20 * Math.cos(arc / 20)) / M_PER_DEG,
+          longitude: LON0 + (20 * Math.sin(arc / 20)) / (M_PER_DEG * Math.cos((LAT0 * Math.PI) / 180)),
+          speed: 5,
+          timestamp: T0 + i * 1000,
+        });
+      });
+      const { s } = ride('bicycle', fixes);
+      expect(s.leanDeg).toBeGreaterThan(6);
+      expect(s.maxLeanDeg).toBeLessThan(9);
+    });
+
     it('below walking-pace speeds the estimate stays at zero', () => {
       const { s } = ride('bicycle', circle(3, 8, 1, 15));
       expect(s.maxLeanDeg).toBe(0);

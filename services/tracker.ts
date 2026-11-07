@@ -10,7 +10,7 @@ export const MIN_MOVE_M = 3;
 const ROUTE_CHUNK = 500;
 /** Below ~15 km/h the GPS heading is too jittery to estimate lean. */
 export const MIN_LEAN_SPEED_MS = 4;
-/** Hops shorter than this give a noisy heading, so the lean estimate waits for a longer one. */
+/** Headings over less ground than this are noise, so the lean estimate waits until the rider has covered it. */
 const MIN_LEAN_MOVE_M = 5;
 /** Caps GPS noise; no road or track lean gets past this. */
 export const MAX_LEAN_DEG = 65;
@@ -37,8 +37,10 @@ export interface TrackerState {
   elevationGainM: number;
   elevationRef: number | null;
   currentSpeedMs: number;
-  /** Bearing of the last hop long enough to trust, for the turn rate. */
-  bearing: number | null;
+  /** Where the next heading is measured from: a kept point of this segment, at least MIN_LEAN_MOVE_M back once moving. */
+  anchor: Waypoint | null;
+  /** Last trusted heading and the time at the middle of the ground it covers, for the turn rate. */
+  heading: { deg: number; at: number } | null;
   /** Estimated lean, degrees; positive is leaning right. */
   leanDeg: number;
   maxLeanDeg: number;
@@ -67,7 +69,8 @@ export function startTracker(activity: ActivityType, at: number): TrackerState {
     elevationGainM: 0,
     elevationRef: null,
     currentSpeedMs: 0,
-    bearing: null,
+    anchor: null,
+    heading: null,
     leanDeg: 0,
     maxLeanDeg: 0,
     lastFixAt: null,
@@ -114,7 +117,7 @@ export function applyFix(s: TrackerState, fix: GpsFix): { state: TrackerState; k
     timestamp: fix.timestamp,
   };
   const elevation = stepElevation(s.elevationRef, s.elevationGainM, fix.altitude);
-  const steer = nextLean(s, prev, fix, speed, moved, dt);
+  const steer = nextLean(s, kept);
   const point = { latitude: fix.latitude, longitude: fix.longitude };
   const route = s.route.slice();
   const tail = route[route.length - 1];
@@ -131,8 +134,7 @@ export function applyFix(s: TrackerState, fix: GpsFix): { state: TrackerState; k
       elevationGainM: elevation.gain,
       elevationRef: elevation.ref,
       currentSpeedMs: speed,
-      bearing: steer.bearing,
-      leanDeg: steer.leanDeg,
+      ...steer,
       maxLeanDeg: Math.max(s.maxLeanDeg, Math.abs(steer.leanDeg)),
       route,
     },
@@ -140,22 +142,21 @@ export function applyFix(s: TrackerState, fix: GpsFix): { state: TrackerState; k
   };
 }
 
-/** Lean from speed and how fast the heading turns between hops (see leanAngleDeg). */
-function nextLean(
-  s: TrackerState,
-  prev: Waypoint | null,
-  fix: GpsFix,
-  speed: number,
-  moved: number,
-  dt: number,
-): { bearing: number | null; leanDeg: number } {
-  if (!prev) return { bearing: null, leanDeg: 0 };
-  if (moved < MIN_LEAN_MOVE_M) return { bearing: s.bearing, leanDeg: speed < MIN_LEAN_SPEED_MS ? 0 : s.leanDeg };
-  const bearing = bearingDeg(prev, fix);
-  if (s.bearing == null || speed < MIN_LEAN_SPEED_MS) return { bearing, leanDeg: 0 };
-  const raw = leanAngleDeg(speed, turnDeg(s.bearing, bearing) / dt);
-  const capped = Math.max(-MAX_LEAN_DEG, Math.min(MAX_LEAN_DEG, raw));
-  return { bearing, leanDeg: s.leanDeg + LEAN_SMOOTHING * (capped - s.leanDeg) };
+/** Lean from speed and how fast the heading turns (see leanAngleDeg). */
+function nextLean(s: TrackerState, point: Waypoint): Pick<TrackerState, 'anchor' | 'heading' | 'leanDeg'> {
+  const anchor = s.anchor;
+  if (anchor?.segment !== point.segment) return { anchor: point, heading: null, leanDeg: 0 };
+  const speed = point.speed ?? 0;
+  // Short hops are skipped, not dropped: the next heading spans them, from the same anchor.
+  if (haversineMeters(anchor, point) < MIN_LEAN_MOVE_M) {
+    return { anchor, heading: s.heading, leanDeg: speed < MIN_LEAN_SPEED_MS ? 0 : s.leanDeg };
+  }
+  const heading = { deg: bearingDeg(anchor, point), at: (anchor.timestamp + point.timestamp) / 2 };
+  if (!s.heading || speed < MIN_LEAN_SPEED_MS) return { anchor: point, heading, leanDeg: 0 };
+  // The time between the two headings, so a skipped hop is not counted as a sharper turn.
+  const turnRate = turnDeg(s.heading.deg, heading.deg) / ((heading.at - s.heading.at) / 1000);
+  const capped = Math.max(-MAX_LEAN_DEG, Math.min(MAX_LEAN_DEG, leanAngleDeg(speed, turnRate)));
+  return { anchor: point, heading, leanDeg: s.leanDeg + LEAN_SMOOTHING * (capped - s.leanDeg) };
 }
 
 export function pauseTracker(s: TrackerState, at: number): TrackerState {
