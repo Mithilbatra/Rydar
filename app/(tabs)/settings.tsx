@@ -105,7 +105,7 @@ export default function SettingsScreen() {
             <Row
               icon={unsynced > 0 ? 'cloud-upload-outline' : 'cloud-done-outline'}
               title={unsynced > 0 ? `${unsynced} ${unsynced === 1 ? 'ride' : 'rides'} waiting to sync` : 'All rides synced'}
-              caption={syncMessage ?? 'Rides upload by themselves when you have a connection.'}
+              caption={syncMessage ?? 'Rides upload when you save them and whenever you open the app with a connection.'}
             />
             <GradientButton label="Sync now" variant="ghost" loading={syncing} onPress={syncNow} />
             <GradientButton label="Sign out" variant="danger" onPress={signOut} />

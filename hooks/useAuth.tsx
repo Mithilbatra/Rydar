@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import Storage from 'expo-sqlite/kv-store';
 import { createContext, use, useEffect, useState, type ReactNode } from 'react';
+import { AppState } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import { pullRemoteRides, syncPendingRides } from '@/services/rides';
@@ -43,6 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     pullRemoteRides()
       .then(syncPendingRides)
       .catch(() => {}); // offline: rides stay queued and sync on the next start
+    // iOS keeps the app alive for days, so also retry whenever it comes back to the foreground.
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') syncPendingRides().catch(() => {});
+    });
+    return () => sub.remove();
   }, [userId]);
 
   const setGuest = (guest: boolean) => {
