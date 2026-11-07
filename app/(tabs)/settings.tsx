@@ -88,7 +88,7 @@ export default function SettingsScreen() {
         <Row
           icon={settings.defaultPublic ? 'globe-outline' : 'lock-closed-outline'}
           title="New rides are public"
-          caption="You can still change each ride on its summary screen.">
+          caption="Anyone with the app's Supabase key can read public rides, including where they start and end. You can still change each ride on its summary screen.">
           <Switch
             value={settings.defaultPublic}
             onValueChange={(defaultPublic) => update({ defaultPublic })}
