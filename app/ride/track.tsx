@@ -203,13 +203,7 @@ export default function Track() {
                   accessibilityLabel={paused ? 'Resume ride' : 'Pause ride'}
                   onPress={paused ? tracker.resume : tracker.pause}
                   style={({ pressed }) => [styles.control, pressed && styles.pressed]}>
-                  {state?.status === 'stopped' ? (
-          <RaceTag
-            label="Chequered flag"
-            color={colors.text}
-            icon={<MaterialCommunityIcons name="flag-checkered" size={14} color={colors.bg} />}
-          />
-        ) : paused ? (
+                  {paused ? (
                     <LinearGradient colors={config.gradient} style={styles.controlFill}>
                       <Ionicons name="play" size={34} color={colors.bg} />
                     </LinearGradient>
