@@ -38,8 +38,6 @@ Icon?
 # typescript
 *.tsbuildinfo
 
-example
-
 # generated native folders
 /ios
 /android
