@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActivityToggle } from '@/components/ActivityToggle';
 import { Bars } from '@/components/Bars';
+import { Card } from '@/components/Card';
 import { GradientButton } from '@/components/GradientButton';
 import { NumberPlate } from '@/components/NumberPlate';
 import { RaceTag } from '@/components/RaceTag';
@@ -124,7 +125,7 @@ export default function Home() {
           </View>
         )}
 
-        <View style={styles.card}>
+        <Card style={styles.roomyCard}>
           <View style={styles.cardHead}>
             <RaceTag label={`This week · ${label}`} color={accent} small />
             {change != null && (
@@ -155,7 +156,7 @@ export default function Home() {
             </View>
           </View>
           <Bars values={dailyDistance(own, now)} labels={DAY_LABELS} color={accent} highlight={today} height={64} />
-        </View>
+        </Card>
 
         {own[0] && (
           <View style={styles.section}>
@@ -186,14 +187,7 @@ const styles = StyleSheet.create({
   },
   interruptedTitle: { marginTop: space.sm },
   interruptedHead: { flexDirection: 'row', gap: space.md },
-  card: {
-    gap: space.lg,
-    padding: space.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
+  roomyCard: { gap: space.lg },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   delta: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, height: 24, borderRadius: radius.pill },
   deltaText: { fontFamily: fonts.semibold, fontSize: 13 },

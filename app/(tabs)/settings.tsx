@@ -5,6 +5,7 @@ import { useCallback, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Card } from '@/components/Card';
 import { FilterChips } from '@/components/FilterChips';
 import { GradientButton } from '@/components/GradientButton';
 import { NumberPlate } from '@/components/NumberPlate';
@@ -143,7 +144,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View style={styles.section}>
       <RaceTag label={title} color={colors.race} solid={false} small />
-      <View style={styles.card}>{children}</View>
+      <Card style={styles.roomyCard}>{children}</Card>
     </View>
   );
 }
@@ -175,14 +176,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: space.xl, gap: space.xl },
   section: { gap: space.sm },
-  card: {
-    gap: space.lg,
-    padding: space.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
+  roomyCard: { gap: space.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   rowText: { flex: 1, gap: 2 },
   rowTitle: { fontFamily: fonts.displayItalic, fontSize: 18, color: colors.text, textTransform: 'uppercase' },

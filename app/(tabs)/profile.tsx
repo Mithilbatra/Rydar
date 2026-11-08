@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityFilter, matchesFilter, type ActivityFilterValue } from '@/components/ActivityFilter';
 import { ActivityIcon } from '@/components/ActivityIcon';
 import { Bars } from '@/components/Bars';
+import { Card } from '@/components/Card';
 import { NumberPlate } from '@/components/NumberPlate';
 import { RaceTag } from '@/components/RaceTag';
 import { Stat } from '@/components/Stat';
@@ -15,7 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRides } from '@/hooks/useRides';
 import { useSettings } from '@/hooks/useSettings';
 import { ACTIVITIES, ACTIVITY_TYPES } from '@/lib/activities';
-import { colors, fonts, radius, space, type } from '@/lib/theme';
+import { colors, fonts, space, type } from '@/lib/theme';
 import type { RideListItem, UnitSystem } from '@/types';
 import {
   fmtDistance,
@@ -121,7 +122,7 @@ export default function Profile() {
         <PeriodCard title="This month" current={thisMonth.distanceKm} previous={lastMonth.distanceKm} rides={thisMonth.count} units={units} />
       </View>
 
-      <View style={styles.card}>
+      <Card>
         <RaceTag label="Last 12 weeks" color={filter === 'all' ? colors.race : accent} solid={false} small />
         <Bars
           values={weeks.map((w) => w.km)}
@@ -133,7 +134,7 @@ export default function Profile() {
           color={filter === 'all' ? colors.race : accent}
           height={96}
         />
-      </View>
+      </Card>
 
       <Text style={[type.heading, styles.recordsTitle]}>Personal records</Text>
       {ACTIVITY_TYPES.filter((t) => filter === 'all' || filter === t).map((t) => (
@@ -190,7 +191,7 @@ function Records({ activity, rides, units }: { activity: (typeof ACTIVITY_TYPES)
     { icon: 'compass-outline', title: 'Max lean', ride: b.maxLean, value: b.maxLean ? `${Math.round(b.maxLean.maxLeanDeg)}°` : '' },
   ];
   return (
-    <View style={styles.card}>
+    <Card>
       <RaceTag label={label} color={accent} icon={<ActivityIcon type={activity} size={14} color={colors.bg} />} />
       {rows.map(({ ride, ...row }) =>
         ride ? (
@@ -214,7 +215,7 @@ function Records({ activity, rides, units }: { activity: (typeof ACTIVITY_TYPES)
           </View>
         ),
       )}
-    </View>
+    </Card>
   );
 }
 
@@ -229,14 +230,6 @@ const styles = StyleSheet.create({
   heroUnit: { fontFamily: fonts.displayItalic, fontSize: 28, color: colors.textDim, textTransform: 'uppercase' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
   cell: { flexGrow: 1, flexBasis: '45%', paddingVertical: space.lg },
-  card: {
-    gap: space.md,
-    padding: space.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
   periodValue: { fontFamily: fonts.black, fontSize: 34, color: colors.text, fontVariant: ['tabular-nums'] },
   periodUnit: { fontFamily: fonts.semibold, fontSize: 16, color: colors.textDim },
   recordsTitle: { marginTop: space.md },
