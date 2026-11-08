@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActivityIcon } from '@/components/ActivityIcon';
 import { AreaChart } from '@/components/AreaChart';
+import { Card } from '@/components/Card';
 import { Chequered } from '@/components/Chequered';
 import { Glass } from '@/components/Glass';
 import { GradientButton } from '@/components/GradientButton';
@@ -18,7 +19,7 @@ import { Tile } from '@/components/Tile';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
 import { ACTIVITIES } from '@/lib/activities';
-import { colors, fonts, radius, space, type } from '@/lib/theme';
+import { colors, fonts, space, type } from '@/lib/theme';
 import { deleteRide, getRide, getWaypoints, listRides, onRidesChanged, setRidePublic } from '@/services/rides';
 import { syncPendingRides } from '@/services/sync';
 import type { LatLng, Ride, RideListItem, Waypoint } from '@/types';
@@ -186,7 +187,7 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
           </View>
 
           {speeds.length > 3 && (
-            <View style={styles.card}>
+            <Card>
               <View style={styles.chartHead}>
                 <Text style={type.label}>Speed</Text>
                 <Text style={type.caption}>
@@ -194,10 +195,10 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
                 </Text>
               </View>
               <AreaChart values={speeds} color={activity.accent} />
-            </View>
+            </Card>
           )}
           {altitudes.length > 3 && (
-            <View style={styles.card}>
+            <Card>
               <View style={styles.chartHead}>
                 <Text style={type.label}>Elevation</Text>
                 <Text style={type.caption}>
@@ -205,10 +206,10 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
                 </Text>
               </View>
               <AreaChart values={altitudes} color={ELEVATION_COLOR} />
-            </View>
+            </Card>
           )}
 
-          <View style={[styles.card, styles.visibility]}>
+          <Card style={styles.visibility}>
             <Ionicons name={ride.isPublic ? 'globe-outline' : 'lock-closed'} size={22} color={colors.text} />
             <View style={styles.visibilityText}>
               <Text style={styles.visibilityTitle}>{ride.isPublic ? 'Public ride' : 'Private ride'}</Text>
@@ -221,7 +222,7 @@ export function RideView({ id, mode }: { id: string; mode: 'summary' | 'details'
               thumbColor={colors.text}
               accessibilityLabel="Public ride"
             />
-          </View>
+          </Card>
         </View>
       </ScrollView>
 
@@ -313,14 +314,6 @@ const styles = StyleSheet.create({
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
   cell: { flexGrow: 1, flexBasis: '45%', paddingVertical: space.lg },
-  card: {
-    padding: space.lg,
-    gap: space.md,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
   chartHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   topFade: { position: 'absolute', top: 0, left: 0, right: 0 },
   visibility: { flexDirection: 'row', alignItems: 'center' },
